@@ -4,8 +4,7 @@ import appConfig from '@main/config/app.config';
 import databaseConfig from '@main/config/database.config';
 import { validate } from '@main/config/env.validation';
 import jwtConfig from '@main/config/jwt.config';
-import { DatabaseModule } from '@main/database.module';
-import { HealthApiModule } from '@main/modules/health/health.api.module';
+import { HealthCliModule } from '@main/modules/health/health.cli.module';
 
 @Module({
   imports: [
@@ -14,8 +13,7 @@ import { HealthApiModule } from '@main/modules/health/health.api.module';
       load: [appConfig, databaseConfig, jwtConfig],
       validate,
     }),
-    DatabaseModule.forRoot(),
-    HealthApiModule,
+    HealthCliModule,
   ],
 })
-export class AppModule {}
+export class AppCliModule {}

@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { DomainException } from '@domain/exceptions/domain.exception';
-import { ErrorResponseDto } from '@presentation/dtos/common/error-response.dto';
+import { ErrorResponseDto } from '@presentation/api/dtos/common/error-response.dto';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
