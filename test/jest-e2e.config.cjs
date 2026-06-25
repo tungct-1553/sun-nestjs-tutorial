@@ -9,7 +9,7 @@ module.exports = {
   moduleFileExtensions: MODULE_FILE_EXTENSIONS,
   rootDir: '.',
   testEnvironment: 'node',
-  testRegex: '.e2e-spec.ts$',
+  testMatch: ['**/*.e2e-spec.ts'],
   setupFiles: ['<rootDir>/setup-e2e.ts'],
   moduleNameMapper: createAliasMapper('<rootDir>/../'),
   transform: {

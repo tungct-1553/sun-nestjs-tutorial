@@ -8,6 +8,7 @@ import {
   Max,
   Min,
   validateSync,
+  ValidationError,
 } from 'class-validator';
 
 enum Environment {
@@ -59,6 +60,36 @@ export class EnvironmentVariables {
   JWT_EXPIRES_IN!: string;
 }
 
+function formatValidationErrors(errors: ValidationError[]): string {
+  const messages: string[] = [];
+
+  const collect = (error: ValidationError, parentPath = ''): void => {
+    const path = parentPath
+      ? `${parentPath}.${error.property}`
+      : error.property;
+
+    if (error.constraints) {
+      messages.push(
+        ...Object.values(error.constraints).map(
+          (message) => `${path}: ${message}`,
+        ),
+      );
+    }
+
+    for (const child of error.children ?? []) {
+      collect(child, path);
+    }
+  };
+
+  for (const error of errors) {
+    collect(error);
+  }
+
+  return messages.length > 0
+    ? messages.join('; ')
+    : 'Environment validation failed';
+}
+
 export function validate(
   config: Record<string, unknown>,
 ): EnvironmentVariables {
@@ -71,7 +102,7 @@ export function validate(
   });
 
   if (errors.length > 0) {
-    throw new Error(errors.toString());
+    throw new Error(formatValidationErrors(errors));
   }
 
   return validatedConfig;

@@ -9,7 +9,7 @@ module.exports = {
   moduleFileExtensions: MODULE_FILE_EXTENSIONS,
   rootDir: 'src',
   testEnvironment: 'node',
-  testRegex: '.*\\.spec\\.ts$',
+  testMatch: ['**/*.spec.ts'],
   moduleNameMapper: createAliasMapper('<rootDir>/', { stripSrcPrefix: true }),
   transform: {
     '^.+\\.(t|j)s$': TS_JEST_TRANSFORM,
