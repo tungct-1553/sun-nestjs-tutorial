@@ -1,0 +1,20 @@
+{
+  "extends": "@sun/sunlint/recommended",
+  "languages": ["typescript"],
+  "input": ["src"],
+  "include": ["src/**/*.ts"],
+  "exclude": [
+    "**/*.spec.ts",
+    "**/*.test.ts",
+    "dist/**",
+    "node_modules/**",
+    "coverage/**"
+  ],
+  "integration": {
+    "eslint": {
+      "enabled": false,
+      "autoDetect": false,
+      "fallbackToStandalone": true
+    }
+  }
+}
