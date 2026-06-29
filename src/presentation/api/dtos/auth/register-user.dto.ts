@@ -9,7 +9,7 @@ import { UserCredentialsDto } from '@presentation/api/dtos/auth/user-credentials
 
 export class RegisterUserBodyDto extends UserCredentialsDto {
   @IsString()
-  @IsNotEmpty()
+  @IsNotEmpty({ message: 'validation.username' })
   @MinLength(1)
   username!: string;
 }

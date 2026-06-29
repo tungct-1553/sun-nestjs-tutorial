@@ -1,0 +1,14 @@
+{
+  "auth": {
+    "invalid_credentials": "Email or password is invalid",
+    "unauthorized": "Authentication required",
+    "email_taken": "Email is already taken",
+    "username_taken": "Username is already taken"
+  },
+  "user": {
+    "not_found": "User not found"
+  },
+  "common": {
+    "internal_server_error": "Internal server error"
+  }
+}

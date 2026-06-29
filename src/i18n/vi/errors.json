@@ -1,0 +1,14 @@
+{
+  "auth": {
+    "invalid_credentials": "Email hoặc mật khẩu không hợp lệ",
+    "unauthorized": "Yêu cầu xác thực",
+    "email_taken": "Email đã được sử dụng",
+    "username_taken": "Tên người dùng đã được sử dụng"
+  },
+  "user": {
+    "not_found": "Không tìm thấy người dùng"
+  },
+  "common": {
+    "internal_server_error": "Lỗi máy chủ nội bộ"
+  }
+}

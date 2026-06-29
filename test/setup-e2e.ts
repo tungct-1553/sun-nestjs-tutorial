@@ -7,3 +7,4 @@ process.env.DB_PASSWORD = 'postgres';
 process.env.DB_DATABASE = 'conduit';
 process.env.JWT_SECRET = 'test-secret';
 process.env.JWT_EXPIRES_IN = '7d';
+process.env.I18N_FALLBACK_LANGUAGE = 'en';

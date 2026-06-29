@@ -1,7 +1,7 @@
-import { DomainException } from '@domain/exceptions/domain.exception';
+import { TranslatableException } from '@domain/exceptions/translatable.exception';
 
-export class UnauthorizedException extends DomainException {
+export class UnauthorizedException extends TranslatableException {
   constructor() {
-    super('Authentication required');
+    super('errors.auth.unauthorized');
   }
 }
