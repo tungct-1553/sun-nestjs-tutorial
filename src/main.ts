@@ -2,6 +2,7 @@ import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { I18nValidationPipe } from 'nestjs-i18n';
 import { AppModule } from '@main/app.module';
+import { setupSwagger } from '@main/swagger.setup';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -16,6 +17,8 @@ async function bootstrap() {
       transformOptions: { enableImplicitConversion: true },
     }),
   );
+
+  setupSwagger(app);
 
   const port = configService.get<number>('app.port', 3000);
   await app.listen(port);
