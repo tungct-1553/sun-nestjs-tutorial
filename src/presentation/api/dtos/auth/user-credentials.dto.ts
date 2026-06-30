@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
 
 export class UserCredentialsDto {
   @IsEmail({}, { message: 'validation.email' })
@@ -6,6 +6,5 @@ export class UserCredentialsDto {
 
   @IsString()
   @IsNotEmpty({ message: 'validation.password' })
-  @MinLength(1)
   password!: string;
 }

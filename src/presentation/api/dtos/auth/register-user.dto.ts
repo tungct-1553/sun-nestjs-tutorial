@@ -1,16 +1,10 @@
 import { Type } from 'class-transformer';
-import {
-  IsNotEmpty,
-  IsString,
-  MinLength,
-  ValidateNested,
-} from 'class-validator';
+import { IsNotEmpty, IsString, ValidateNested } from 'class-validator';
 import { UserCredentialsDto } from '@presentation/api/dtos/auth/user-credentials.dto';
 
 export class RegisterUserBodyDto extends UserCredentialsDto {
   @IsString()
   @IsNotEmpty({ message: 'validation.username' })
-  @MinLength(1)
   username!: string;
 }
 
