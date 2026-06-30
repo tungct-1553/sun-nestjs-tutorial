@@ -1,7 +1,7 @@
-import { DomainException } from '@domain/exceptions/domain.exception';
+import { TranslatableException } from '@domain/exceptions/translatable.exception';
 
-export class DuplicateEmailException extends DomainException {
+export class DuplicateEmailException extends TranslatableException {
   constructor() {
-    super('Email is already taken');
+    super('errors.auth.email_taken');
   }
 }

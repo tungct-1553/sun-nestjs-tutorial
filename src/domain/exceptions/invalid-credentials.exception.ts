@@ -1,7 +1,7 @@
-import { DomainException } from '@domain/exceptions/domain.exception';
+import { TranslatableException } from '@domain/exceptions/translatable.exception';
 
-export class InvalidCredentialsException extends DomainException {
+export class InvalidCredentialsException extends TranslatableException {
   constructor() {
-    super('Email or password is invalid');
+    super('errors.auth.invalid_credentials');
   }
 }
