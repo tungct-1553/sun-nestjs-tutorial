@@ -1,5 +1,10 @@
 {
   "email": "Email must be a valid email address",
   "username": "Username must not be empty",
-  "password": "Password must not be empty"
+  "password": "Password must not be empty",
+  "article": {
+    "title": "Title must not be empty",
+    "description": "Description must not be empty",
+    "body": "Body must not be empty"
+  }
 }

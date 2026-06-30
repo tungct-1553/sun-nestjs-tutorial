@@ -8,6 +8,10 @@
   "user": {
     "not_found": "Không tìm thấy người dùng"
   },
+  "article": {
+    "not_found": "Không tìm thấy bài viết",
+    "forbidden": "Bạn không có quyền chỉnh sửa bài viết này"
+  },
   "common": {
     "internal_server_error": "Lỗi máy chủ nội bộ"
   }

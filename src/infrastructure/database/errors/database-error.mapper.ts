@@ -1,4 +1,5 @@
 import { DomainException } from '@domain/exceptions/domain.exception';
+import { ArticleNotFoundException } from '@domain/exceptions/article-not-found.exception';
 import { DuplicateEmailException } from '@domain/exceptions/duplicate-email.exception';
 import { DuplicateUsernameException } from '@domain/exceptions/duplicate-username.exception';
 import { InternalException } from '@domain/exceptions/internal.exception';
@@ -62,6 +63,18 @@ export const mapUserPersistenceError = (error: unknown): never => {
     if (matchesConstraint(error, USER_USERNAME_CONSTRAINTS, 'username')) {
       throw new DuplicateUsernameException();
     }
+  }
+
+  throw new InternalException(error);
+};
+
+export const mapArticlePersistenceError = (error: unknown): never => {
+  if (error instanceof DomainException) {
+    throw error;
+  }
+
+  if (error instanceof EntityNotFoundError) {
+    throw new ArticleNotFoundException();
   }
 
   throw new InternalException(error);
