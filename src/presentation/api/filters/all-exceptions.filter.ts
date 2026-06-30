@@ -11,6 +11,7 @@ import { DomainException } from '@domain/exceptions/domain.exception';
 import { DuplicateEmailException } from '@domain/exceptions/duplicate-email.exception';
 import { DuplicateUsernameException } from '@domain/exceptions/duplicate-username.exception';
 import { InvalidCredentialsException } from '@domain/exceptions/invalid-credentials.exception';
+import { InternalException } from '@domain/exceptions/internal.exception';
 import { UnauthorizedException } from '@domain/exceptions/unauthorized.exception';
 import { UserNotFoundException } from '@domain/exceptions/user-not-found.exception';
 import { ErrorResponseDto } from '@presentation/api/dtos/common/error-response.dto';
@@ -27,9 +28,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const { status, errors } = this.resolveException(exception);
 
     if (status >= Number(HttpStatus.INTERNAL_SERVER_ERROR)) {
+      const logTarget = this.resolveLogTarget(exception);
+
       this.logger.error(
         `${request.method} ${request.url}`,
-        exception instanceof Error ? exception.stack : String(exception),
+        logTarget instanceof Error ? logTarget.stack : String(logTarget),
       );
     }
 
@@ -101,6 +104,18 @@ export class AllExceptionsFilter implements ExceptionFilter {
       return HttpStatus.NOT_FOUND;
     }
 
+    if (exception instanceof InternalException) {
+      return HttpStatus.INTERNAL_SERVER_ERROR;
+    }
+
     return HttpStatus.BAD_REQUEST;
+  }
+
+  private resolveLogTarget(exception: unknown): unknown {
+    if (exception instanceof InternalException && exception.cause) {
+      return exception.cause;
+    }
+
+    return exception;
   }
 }

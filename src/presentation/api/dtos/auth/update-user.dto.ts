@@ -1,37 +1,39 @@
 import { Type } from 'class-transformer';
 import {
   IsEmail,
-  IsOptional,
+  IsNotEmpty,
   IsString,
   MinLength,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 
 export class UpdateUserBodyDto {
-  @IsOptional()
+  @ValidateIf((_, value) => value !== undefined)
   @IsEmail()
   email?: string;
 
-  @IsOptional()
+  @ValidateIf((_, value) => value !== undefined)
   @IsString()
   @MinLength(1)
   username?: string;
 
-  @IsOptional()
+  @ValidateIf((_, value) => value !== undefined)
   @IsString()
   @MinLength(1)
   password?: string;
 
-  @IsOptional()
+  @ValidateIf((_, value) => value !== undefined)
   @IsString()
   bio?: string;
 
-  @IsOptional()
+  @ValidateIf((_, value) => value !== undefined)
   @IsString()
   image?: string;
 }
 
 export class UpdateUserDto {
+  @IsNotEmpty()
   @ValidateNested()
   @Type(() => UpdateUserBodyDto)
   user!: UpdateUserBodyDto;

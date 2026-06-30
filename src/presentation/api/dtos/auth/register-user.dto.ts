@@ -15,6 +15,7 @@ export class RegisterUserBodyDto extends UserCredentialsDto {
 }
 
 export class RegisterUserDto {
+  @IsNotEmpty()
   @ValidateNested()
   @Type(() => RegisterUserBodyDto)
   user!: RegisterUserBodyDto;

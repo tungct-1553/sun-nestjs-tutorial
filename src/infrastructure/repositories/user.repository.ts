@@ -7,6 +7,7 @@ import {
   UserRepositoryPort,
 } from '@application/ports/outbound/user/user.repository.port';
 import { User } from '@domain/models/user';
+import { mapUserPersistenceError } from '@infrastructure/database/errors/database-error.mapper';
 import { UserEntity } from '@infrastructure/entities/user.entity';
 import { toDomainUser } from '@infrastructure/mappers/user.mapper';
 
@@ -33,35 +34,43 @@ export class UserRepository implements UserRepositoryPort {
   }
 
   async create(input: CreateUserInput): Promise<User> {
-    const entity = this.repository.create({
-      email: input.email,
-      username: input.username,
-      password: input.passwordHash,
-    });
-    const saved = await this.repository.save(entity);
-    return toDomainUser(saved);
+    try {
+      const entity = this.repository.create({
+        email: input.email,
+        username: input.username,
+        password: input.passwordHash,
+      });
+      const saved = await this.repository.save(entity);
+      return toDomainUser(saved);
+    } catch (error) {
+      return mapUserPersistenceError(error);
+    }
   }
 
   async update(id: string, input: UpdateUserInput): Promise<User> {
-    const entity = await this.repository.findOneOrFail({ where: { id } });
+    try {
+      const entity = await this.repository.findOneOrFail({ where: { id } });
 
-    if (input.email !== undefined) {
-      entity.email = input.email;
-    }
-    if (input.username !== undefined) {
-      entity.username = input.username;
-    }
-    if (input.passwordHash !== undefined) {
-      entity.password = input.passwordHash;
-    }
-    if (input.bio !== undefined) {
-      entity.bio = input.bio;
-    }
-    if (input.image !== undefined) {
-      entity.image = input.image;
-    }
+      if (input.email !== undefined) {
+        entity.email = input.email;
+      }
+      if (input.username !== undefined) {
+        entity.username = input.username;
+      }
+      if (input.passwordHash !== undefined) {
+        entity.password = input.passwordHash;
+      }
+      if (input.bio !== undefined) {
+        entity.bio = input.bio;
+      }
+      if (input.image !== undefined) {
+        entity.image = input.image;
+      }
 
-    const saved = await this.repository.save(entity);
-    return toDomainUser(saved);
+      const saved = await this.repository.save(entity);
+      return toDomainUser(saved);
+    } catch (error) {
+      return mapUserPersistenceError(error);
+    }
   }
 }
