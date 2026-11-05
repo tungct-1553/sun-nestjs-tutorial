@@ -14,5 +14,9 @@
   },
   "common": {
     "internal_server_error": "Lỗi máy chủ nội bộ"
+  },
+  "comment": {
+    "not_found": "Không tìm thấy bình luận",
+    "forbidden": "Bạn không có quyền xóa bình luận này"
   }
 }

@@ -11,6 +11,8 @@ import { I18nContext, I18nService } from 'nestjs-i18n';
 import { DomainException } from '@domain/exceptions/domain.exception';
 import { ArticleForbiddenException } from '@domain/exceptions/article-forbidden.exception';
 import { ArticleNotFoundException } from '@domain/exceptions/article-not-found.exception';
+import { CommentNotFoundException } from '@domain/exceptions/comment-not-found.exception';
+import { CommentForbiddenException } from '@domain/exceptions/comment-forbidden.exception';
 import { DuplicateEmailException } from '@domain/exceptions/duplicate-email.exception';
 import { DuplicateUsernameException } from '@domain/exceptions/duplicate-username.exception';
 import { InvalidCredentialsException } from '@domain/exceptions/invalid-credentials.exception';
@@ -129,12 +131,16 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     if (
       exception instanceof UserNotFoundException ||
-      exception instanceof ArticleNotFoundException
+      exception instanceof ArticleNotFoundException ||
+      exception instanceof CommentNotFoundException
     ) {
       return HttpStatus.NOT_FOUND;
     }
 
-    if (exception instanceof ArticleForbiddenException) {
+    if (
+      exception instanceof ArticleForbiddenException ||
+      exception instanceof CommentForbiddenException
+    ) {
       return HttpStatus.FORBIDDEN;
     }
 
