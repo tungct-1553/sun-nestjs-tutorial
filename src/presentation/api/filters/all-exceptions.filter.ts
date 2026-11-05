@@ -9,6 +9,8 @@ import {
 import { Request, Response } from 'express';
 import { I18nContext, I18nService } from 'nestjs-i18n';
 import { DomainException } from '@domain/exceptions/domain.exception';
+import { ArticleForbiddenException } from '@domain/exceptions/article-forbidden.exception';
+import { ArticleNotFoundException } from '@domain/exceptions/article-not-found.exception';
 import { DuplicateEmailException } from '@domain/exceptions/duplicate-email.exception';
 import { DuplicateUsernameException } from '@domain/exceptions/duplicate-username.exception';
 import { InvalidCredentialsException } from '@domain/exceptions/invalid-credentials.exception';
@@ -125,8 +127,15 @@ export class AllExceptionsFilter implements ExceptionFilter {
       return HttpStatus.UNAUTHORIZED;
     }
 
-    if (exception instanceof UserNotFoundException) {
+    if (
+      exception instanceof UserNotFoundException ||
+      exception instanceof ArticleNotFoundException
+    ) {
       return HttpStatus.NOT_FOUND;
+    }
+
+    if (exception instanceof ArticleForbiddenException) {
+      return HttpStatus.FORBIDDEN;
     }
 
     if (exception instanceof InternalException) {

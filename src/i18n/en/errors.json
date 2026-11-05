@@ -8,6 +8,10 @@
   "user": {
     "not_found": "User not found"
   },
+  "article": {
+    "not_found": "Article not found",
+    "forbidden": "You are not allowed to modify this article"
+  },
   "common": {
     "internal_server_error": "Internal server error"
   }
