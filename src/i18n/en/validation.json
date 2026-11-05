@@ -1,0 +1,5 @@
+{
+  "email": "Email must be a valid email address",
+  "username": "Username must not be empty",
+  "password": "Password must not be empty"
+}

@@ -1,7 +1,7 @@
-import { DomainException } from '@domain/exceptions/domain.exception';
+import { TranslatableException } from '@domain/exceptions/translatable.exception';
 
-export class UserNotFoundException extends DomainException {
+export class UserNotFoundException extends TranslatableException {
   constructor() {
-    super('User not found');
+    super('errors.user.not_found');
   }
 }

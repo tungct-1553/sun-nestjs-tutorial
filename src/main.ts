@@ -1,8 +1,7 @@
-import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import { I18nValidationPipe } from 'nestjs-i18n';
 import { AppModule } from '@main/app.module';
-import { AllExceptionsFilter } from '@presentation/api/filters/all-exceptions.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -10,14 +9,13 @@ async function bootstrap() {
 
   app.setGlobalPrefix(configService.get<string>('app.apiPrefix', 'api'));
   app.useGlobalPipes(
-    new ValidationPipe({
+    new I18nValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
       transformOptions: { enableImplicitConversion: true },
     }),
   );
-  app.useGlobalFilters(new AllExceptionsFilter());
 
   const port = configService.get<number>('app.port', 3000);
   await app.listen(port);

@@ -10,17 +10,17 @@ import {
 
 export class UpdateUserBodyDto {
   @ValidateIf((_, value) => value !== undefined)
-  @IsEmail()
+  @IsEmail({}, { message: 'validation.email' })
   email?: string;
 
   @ValidateIf((_, value) => value !== undefined)
   @IsString()
-  @MinLength(1)
+  @MinLength(1, { message: 'validation.username' })
   username?: string;
 
   @ValidateIf((_, value) => value !== undefined)
   @IsString()
-  @MinLength(1)
+  @MinLength(1, { message: 'validation.password' })
   password?: string;
 
   @ValidateIf((_, value) => value !== undefined)
