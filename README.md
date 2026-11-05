@@ -164,11 +164,3 @@ Theo [tutorial](./docs/tutorial.md):
 1. **Init codebase** — cấu trúc dự án, TypeORM, config, ports/tokens, migrations
 2. **Init model** — entities, relationships, generate & run migrations (User, Article, Comment, Tag, ...)
 3. **Feature PRs** — Authentication, CRUD Articles, Comments, ...
-Kiểm thử repository Articles với PostgreSQL dùng schema tạm riêng (cần quyền tạo
-và xóa schema trên database thử nghiệm):
-
-```bash
-ARTICLE_TEST_DATABASE_URL='postgres://USER:PASSWORD@localhost:5432/TEST_DB' npm run test:e2e -- --runInBand test/article-repository.e2e-spec.ts
-```
-
-Nếu không đặt `ARTICLE_TEST_DATABASE_URL`, kiểm thử này sẽ được bỏ qua.
