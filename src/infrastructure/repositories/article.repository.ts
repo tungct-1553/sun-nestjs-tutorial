@@ -124,7 +124,14 @@ export class ArticleRepository implements ArticleRepositoryPort {
       .leftJoinAndSelect('article.tags', 'tags');
 
     if (filters.tag) {
-      queryBuilder.andWhere('tags.name = :tag', { tag: filters.tag });
+      queryBuilder.innerJoin(
+        'article.tags',
+        'filterTag',
+        'filterTag.name = :tag',
+        {
+          tag: filters.tag,
+        },
+      );
     }
 
     if (filters.authorUsername) {
@@ -150,7 +157,9 @@ export class ArticleRepository implements ArticleRepositoryPort {
     for (const name of normalizedTags) {
       let tag = await this.tagRepository.findOne({ where: { name } });
       if (!tag) {
-        tag = await this.tagRepository.save(this.tagRepository.create({ name }));
+        tag = await this.tagRepository.save(
+          this.tagRepository.create({ name }),
+        );
       }
       tags.push(tag);
     }
