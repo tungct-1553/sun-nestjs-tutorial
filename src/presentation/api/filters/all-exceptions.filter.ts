@@ -8,6 +8,12 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { DomainException } from '@domain/exceptions/domain.exception';
+import { DuplicateEmailException } from '@domain/exceptions/duplicate-email.exception';
+import { DuplicateUsernameException } from '@domain/exceptions/duplicate-username.exception';
+import { InvalidCredentialsException } from '@domain/exceptions/invalid-credentials.exception';
+import { InternalException } from '@domain/exceptions/internal.exception';
+import { UnauthorizedException } from '@domain/exceptions/unauthorized.exception';
+import { UserNotFoundException } from '@domain/exceptions/user-not-found.exception';
 import { ErrorResponseDto } from '@presentation/api/dtos/common/error-response.dto';
 
 @Catch()
@@ -22,9 +28,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const { status, errors } = this.resolveException(exception);
 
     if (status >= Number(HttpStatus.INTERNAL_SERVER_ERROR)) {
+      const logTarget = this.resolveLogTarget(exception);
+
       this.logger.error(
         `${request.method} ${request.url}`,
-        exception instanceof Error ? exception.stack : String(exception),
+        logTarget instanceof Error ? logTarget.stack : String(logTarget),
       );
     }
 
@@ -64,9 +72,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
     }
 
     if (exception instanceof DomainException) {
-      // TODO: Handle domain exceptions and map them to appropriate HTTP status codes and error messages
       return {
-        status: HttpStatus.BAD_REQUEST,
+        status: this.resolveDomainExceptionStatus(exception),
         errors: { error: [exception.message] },
       };
     }
@@ -75,5 +82,40 @@ export class AllExceptionsFilter implements ExceptionFilter {
       status: HttpStatus.INTERNAL_SERVER_ERROR,
       errors: { error: ['Internal server error'] },
     };
+  }
+
+  private resolveDomainExceptionStatus(exception: DomainException): number {
+    if (exception instanceof InvalidCredentialsException) {
+      return HttpStatus.FORBIDDEN;
+    }
+
+    if (
+      exception instanceof DuplicateEmailException ||
+      exception instanceof DuplicateUsernameException
+    ) {
+      return HttpStatus.UNPROCESSABLE_ENTITY;
+    }
+
+    if (exception instanceof UnauthorizedException) {
+      return HttpStatus.UNAUTHORIZED;
+    }
+
+    if (exception instanceof UserNotFoundException) {
+      return HttpStatus.NOT_FOUND;
+    }
+
+    if (exception instanceof InternalException) {
+      return HttpStatus.INTERNAL_SERVER_ERROR;
+    }
+
+    return HttpStatus.BAD_REQUEST;
+  }
+
+  private resolveLogTarget(exception: unknown): unknown {
+    if (exception instanceof InternalException && exception.cause) {
+      return exception.cause;
+    }
+
+    return exception;
   }
 }
