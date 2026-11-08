@@ -10,6 +10,7 @@ import swaggerConfig from '@main/config/swagger.config';
 import { DatabaseModule } from '@main/database.module';
 import { I18nAppModule } from '@main/i18n.module';
 import { ArticlesApiModule } from '@main/modules/articles/articles.api.module';
+import { CommentsApiModule } from '@main/modules/comments/comments.api.module';
 import { AuthApiModule } from '@main/modules/auth/auth.api.module';
 import { HealthApiModule } from '@main/modules/health/health.api.module';
 import { AllExceptionsFilter } from '@presentation/api/filters/all-exceptions.filter';
@@ -26,6 +27,7 @@ import { AllExceptionsFilter } from '@presentation/api/filters/all-exceptions.fi
     HealthApiModule,
     AuthApiModule,
     ArticlesApiModule,
+    CommentsApiModule,
   ],
   providers: [
     {

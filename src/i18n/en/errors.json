@@ -14,5 +14,9 @@
   },
   "common": {
     "internal_server_error": "Internal server error"
+  },
+  "comment": {
+    "not_found": "Comment not found",
+    "forbidden": "You are not allowed to delete this comment"
   }
 }
