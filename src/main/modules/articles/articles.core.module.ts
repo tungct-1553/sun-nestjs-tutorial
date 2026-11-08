@@ -1,3 +1,4 @@
+import { FavoriteArticleUseCase } from '@application/use-cases/article/favorite-article.use-case';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CreateArticleUseCase } from '@application/use-cases/article/create-article.use-case';
@@ -7,6 +8,7 @@ import { ListArticlesUseCase } from '@application/use-cases/article/list-article
 import { UpdateArticleUseCase } from '@application/use-cases/article/update-article.use-case';
 import {
   ARTICLE_REPOSITORY,
+  FAVORITE_ARTICLE_PORT,
   CREATE_ARTICLE_PORT,
   DELETE_ARTICLE_PORT,
   GET_ARTICLE_PORT,
@@ -20,6 +22,12 @@ import { ArticleRepository } from '@infrastructure/repositories/article.reposito
 @Module({
   imports: [TypeOrmModule.forFeature([ArticleEntity, TagEntity])],
   providers: [
+    {
+      provide: FAVORITE_ARTICLE_PORT,
+      useFactory: (repository: ArticleRepository) =>
+        new FavoriteArticleUseCase(repository),
+      inject: [ARTICLE_REPOSITORY],
+    },
     {
       provide: ARTICLE_REPOSITORY,
       useClass: ArticleRepository,
@@ -56,6 +64,7 @@ import { ArticleRepository } from '@infrastructure/repositories/article.reposito
     },
   ],
   exports: [
+    FAVORITE_ARTICLE_PORT,
     ARTICLE_REPOSITORY,
     CREATE_ARTICLE_PORT,
     GET_ARTICLE_PORT,

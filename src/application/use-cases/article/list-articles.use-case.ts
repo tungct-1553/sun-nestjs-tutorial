@@ -16,6 +16,8 @@ export class ListArticlesUseCase implements ListArticlesPort {
     const filters = {
       tag: query.tag,
       authorUsername: query.author,
+      ...(query.favorited !== undefined ? { favorited: query.favorited } : {}),
+      ...(query.viewerId !== undefined ? { viewerId: query.viewerId } : {}),
       limit: query.limit ?? DEFAULT_LIMIT,
       offset: query.offset ?? DEFAULT_OFFSET,
     };

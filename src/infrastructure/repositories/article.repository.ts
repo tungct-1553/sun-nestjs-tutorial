@@ -22,9 +22,14 @@ export class ArticleRepository implements ArticleRepositoryPort {
     private readonly tagRepository: Repository<TagEntity>,
   ) {}
 
-  async findBySlug(slug: string): Promise<Article | null> {
+  async findBySlug(slug: string, viewerId?: string): Promise<Article | null> {
     const entity = await this.articleRepository.findOne({ where: { slug } });
-    return entity ? toDomainArticle(entity) : null;
+    if (!entity) return null;
+    const [article] = await this.populateFavorites(
+      [toDomainArticle(entity)],
+      viewerId,
+    );
+    return article;
   }
 
   async findMany(filters: ArticleFilters): Promise<Article[]> {
@@ -35,7 +40,10 @@ export class ArticleRepository implements ArticleRepositoryPort {
       .take(filters.limit)
       .getMany();
 
-    return entities.map(toDomainArticle);
+    return this.populateFavorites(
+      entities.map(toDomainArticle),
+      filters.viewerId,
+    );
   }
 
   async count(filters: ArticleFilters): Promise<number> {
@@ -64,7 +72,11 @@ export class ArticleRepository implements ArticleRepositoryPort {
     }
   }
 
-  async update(id: string, input: UpdateArticleInput): Promise<Article> {
+  async update(
+    id: string,
+    input: UpdateArticleInput,
+    viewerId?: string,
+  ): Promise<Article> {
     try {
       const entity = await this.articleRepository.findOneOrFail({
         where: { id },
@@ -90,7 +102,11 @@ export class ArticleRepository implements ArticleRepositoryPort {
       const reloaded = await this.articleRepository.findOneOrFail({
         where: { id },
       });
-      return toDomainArticle(reloaded);
+      const [article] = await this.populateFavorites(
+        [toDomainArticle(reloaded)],
+        viewerId,
+      );
+      return article;
     } catch (error) {
       return mapArticlePersistenceError(error);
     }
@@ -102,6 +118,49 @@ export class ArticleRepository implements ArticleRepositoryPort {
     } catch (error) {
       return mapArticlePersistenceError(error);
     }
+  }
+
+  async addFavorite(articleId: string, userId: string): Promise<void> {
+    await this.articleRepository.query(
+      `INSERT INTO ${this.tableName('article_favorites')} (article_id, user_id) VALUES ($1, $2) ON CONFLICT (article_id, user_id) DO NOTHING`,
+      [articleId, userId],
+    );
+  }
+
+  async removeFavorite(articleId: string, userId: string): Promise<void> {
+    await this.articleRepository.query(
+      `DELETE FROM ${this.tableName('article_favorites')} WHERE article_id = $1 AND user_id = $2`,
+      [articleId, userId],
+    );
+  }
+
+  private tableName(name: string): string {
+    const schema = this.articleRepository.metadata.schema;
+    const escape = (value: string) =>
+      this.articleRepository.manager.connection.driver.escape(value);
+    return schema ? `${escape(schema)}.${escape(name)}` : escape(name);
+  }
+
+  private async populateFavorites(
+    articles: Article[],
+    viewerId?: string,
+  ): Promise<Article[]> {
+    if (articles.length === 0) return [];
+    const rows: { article_id: string; count: string; favorited: boolean }[] =
+      await this.articleRepository.query(
+        `SELECT article_id, COUNT(*)::text AS count, COALESCE(BOOL_OR(user_id = $2::uuid), false) AS favorited
+       FROM ${this.tableName('article_favorites')} WHERE article_id = ANY($1::uuid[]) GROUP BY article_id`,
+        [articles.map((article) => article.id), viewerId ?? null],
+      );
+    const byArticle = new Map(rows.map((row) => [row.article_id, row]));
+    return articles.map((article) => {
+      const stats = byArticle.get(article.id);
+      return new Article({
+        ...article,
+        favoritesCount: Number(stats?.count ?? 0),
+        favorited: stats?.favorited ?? false,
+      });
+    });
   }
 
   async slugExists(slug: string, excludeId?: string): Promise<boolean> {
@@ -140,6 +199,16 @@ export class ArticleRepository implements ArticleRepositoryPort {
       });
     }
 
+    if (filters.favorited) {
+      queryBuilder.andWhere(
+        `EXISTS (
+        SELECT 1 FROM ${this.tableName('article_favorites')} favorite
+        JOIN ${this.tableName('users')} favorite_user ON favorite_user.id = favorite.user_id
+        WHERE favorite.article_id = article.id AND favorite_user.username = :favorited
+      )`,
+        { favorited: filters.favorited },
+      );
+    }
     return queryBuilder;
   }
 
