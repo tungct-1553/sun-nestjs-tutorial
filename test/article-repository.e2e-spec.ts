@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { DataSource } from 'typeorm';
 import { CreateArticleFavoritesTable1783200000000 } from '@infrastructure/database/migrations/1783200000000-CreateArticleFavoritesTable';
+import { ArticleFavoriteEntity } from '@infrastructure/entities/article-favorite.entity';
 import { ArticleEntity } from '@infrastructure/entities/article.entity';
 import { TagEntity } from '@infrastructure/entities/tag.entity';
 import { UserEntity } from '@infrastructure/entities/user.entity';
@@ -24,12 +25,13 @@ describeWithDatabase('ArticleRepository tag filtering (PostgreSQL)', () => {
       type: 'postgres',
       url: databaseUrl,
       schema,
-      entities: [UserEntity, ArticleEntity, TagEntity],
+      entities: [UserEntity, ArticleEntity, TagEntity, ArticleFavoriteEntity],
       synchronize: true,
     }).initialize();
     const runner = dataSource.createQueryRunner();
     await runner.connect();
     await runner.query(`SET search_path TO "${schema}", public`);
+    await runner.query('DROP TABLE "article_favorites"');
     await new CreateArticleFavoritesTable1783200000000().up(runner);
     await runner.release();
   });

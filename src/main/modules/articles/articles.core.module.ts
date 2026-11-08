@@ -15,12 +15,15 @@ import {
   LIST_ARTICLES_PORT,
   UPDATE_ARTICLE_PORT,
 } from '@application/ports/tokens';
+import { ArticleFavoriteEntity } from '@infrastructure/entities/article-favorite.entity';
 import { ArticleEntity } from '@infrastructure/entities/article.entity';
 import { TagEntity } from '@infrastructure/entities/tag.entity';
 import { ArticleRepository } from '@infrastructure/repositories/article.repository';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([ArticleEntity, TagEntity])],
+  imports: [
+    TypeOrmModule.forFeature([ArticleEntity, TagEntity, ArticleFavoriteEntity]),
+  ],
   providers: [
     {
       provide: FAVORITE_ARTICLE_PORT,

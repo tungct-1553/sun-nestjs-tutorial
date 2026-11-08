@@ -9,6 +9,8 @@ import {
 } from '@application/ports/outbound/article/article.repository.port';
 import { Article } from '@domain/models/article';
 import { mapArticlePersistenceError } from '@infrastructure/database/errors/database-error.mapper';
+import { ArticleFavoriteEntity } from '@infrastructure/entities/article-favorite.entity';
+import { UserEntity } from '@infrastructure/entities/user.entity';
 import { ArticleEntity } from '@infrastructure/entities/article.entity';
 import { TagEntity } from '@infrastructure/entities/tag.entity';
 import { toDomainArticle } from '@infrastructure/mappers/article.mapper';
@@ -121,24 +123,19 @@ export class ArticleRepository implements ArticleRepositoryPort {
   }
 
   async addFavorite(articleId: string, userId: string): Promise<void> {
-    await this.articleRepository.query(
-      `INSERT INTO ${this.tableName('article_favorites')} (article_id, user_id) VALUES ($1, $2) ON CONFLICT (article_id, user_id) DO NOTHING`,
-      [articleId, userId],
-    );
+    await this.articleRepository.manager
+      .createQueryBuilder()
+      .insert()
+      .into(ArticleFavoriteEntity)
+      .values({ articleId, userId })
+      .orIgnore()
+      .execute();
   }
 
   async removeFavorite(articleId: string, userId: string): Promise<void> {
-    await this.articleRepository.query(
-      `DELETE FROM ${this.tableName('article_favorites')} WHERE article_id = $1 AND user_id = $2`,
-      [articleId, userId],
-    );
-  }
-
-  private tableName(name: string): string {
-    const schema = this.articleRepository.metadata.schema;
-    const escape = (value: string) =>
-      this.articleRepository.manager.connection.driver.escape(value);
-    return schema ? `${escape(schema)}.${escape(name)}` : escape(name);
+    await this.articleRepository.manager
+      .getRepository(ArticleFavoriteEntity)
+      .delete({ articleId, userId });
   }
 
   private async populateFavorites(
@@ -146,12 +143,21 @@ export class ArticleRepository implements ArticleRepositoryPort {
     viewerId?: string,
   ): Promise<Article[]> {
     if (articles.length === 0) return [];
-    const rows: { article_id: string; count: string; favorited: boolean }[] =
-      await this.articleRepository.query(
-        `SELECT article_id, COUNT(*)::text AS count, COALESCE(BOOL_OR(user_id = $2::uuid), false) AS favorited
-       FROM ${this.tableName('article_favorites')} WHERE article_id = ANY($1::uuid[]) GROUP BY article_id`,
-        [articles.map((article) => article.id), viewerId ?? null],
-      );
+    const rows = await this.articleRepository.manager
+      .getRepository(ArticleFavoriteEntity)
+      .createQueryBuilder('favorite')
+      .select('favorite.articleId', 'article_id')
+      .addSelect('COUNT(*)', 'count')
+      .addSelect(
+        'COALESCE(BOOL_OR(favorite.userId = :viewerId), false)',
+        'favorited',
+      )
+      .where('favorite.articleId IN (:...ids)', {
+        ids: articles.map((article) => article.id),
+      })
+      .setParameter('viewerId', viewerId ?? null)
+      .groupBy('favorite.articleId')
+      .getRawMany<{ article_id: string; count: string; favorited: boolean }>();
     const byArticle = new Map(rows.map((row) => [row.article_id, row]));
     return articles.map((article) => {
       const stats = byArticle.get(article.id);
@@ -201,11 +207,21 @@ export class ArticleRepository implements ArticleRepositoryPort {
 
     if (filters.favorited) {
       queryBuilder.andWhere(
-        `EXISTS (
-        SELECT 1 FROM ${this.tableName('article_favorites')} favorite
-        JOIN ${this.tableName('users')} favorite_user ON favorite_user.id = favorite.user_id
-        WHERE favorite.article_id = article.id AND favorite_user.username = :favorited
-      )`,
+        (builder) => {
+          const subquery = builder
+            .subQuery()
+            .select('1')
+            .from(ArticleFavoriteEntity, 'favorite')
+            .innerJoin(
+              UserEntity,
+              'favorite_user',
+              'favorite_user.id = favorite.userId',
+            )
+            .where('favorite.articleId = article.id')
+            .andWhere('favorite_user.username = :favorited')
+            .getQuery();
+          return `EXISTS ${subquery}`;
+        },
         { favorited: filters.favorited },
       );
     }
