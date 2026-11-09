@@ -79,3 +79,16 @@ export const mapArticlePersistenceError = (error: unknown): never => {
 
   throw new InternalException(error);
 };
+
+export const mapFollowPersistenceError = (error: unknown): never => {
+  if (isQueryFailedError(error)) {
+    const driverError = getDriverError(error);
+    if (
+      driverError.code === '23503' &&
+      driverError.constraint === 'FK_user_follows_followed'
+    ) {
+      throw new UserNotFoundException();
+    }
+  }
+  throw new InternalException(error);
+};
