@@ -12,6 +12,7 @@ import { Comment } from '@domain/models/comment';
 describe('comment use cases', () => {
   const articles: jest.Mocked<ArticleRepositoryPort> = {
     findBySlug: jest.fn(),
+    findById: jest.fn(),
     findMany: jest.fn(),
     count: jest.fn(),
     create: jest.fn(),
@@ -105,10 +106,10 @@ describe('comment use cases', () => {
       'slug',
       'viewer-1',
     );
-    expect(comments.findByArticleId).toHaveBeenCalledWith(
+    expect(comments.findByArticleId.mock.calls).toContainEqual([
       'article-1',
       'viewer-1',
-    );
+    ]);
     expect(result[0].author.following).toBe(true);
   });
   it('rejects create, list and delete when article does not exist', async () => {

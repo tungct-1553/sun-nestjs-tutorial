@@ -6,6 +6,7 @@ import { Article } from '@domain/models/article';
 describe('GetArticleUseCase', () => {
   const repository: jest.Mocked<ArticleRepositoryPort> = {
     findBySlug: jest.fn(),
+    findById: jest.fn(),
     findMany: jest.fn(),
     count: jest.fn(),
     create: jest.fn(),

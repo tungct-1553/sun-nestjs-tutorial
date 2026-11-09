@@ -1,4 +1,7 @@
 import { randomUUID } from 'node:crypto';
+import { FavoriteArticleUseCase } from '@application/use-cases/article/favorite-article.use-case';
+import { ArticleNotFoundException } from '@domain/exceptions/article-not-found.exception';
+import { InternalException } from '@domain/exceptions/internal.exception';
 import { DataSource } from 'typeorm';
 import { CreateArticleFavoritesTable1783200000000 } from '@infrastructure/database/migrations/1783200000000-CreateArticleFavoritesTable';
 import { CommentEntity } from '@infrastructure/entities/comment.entity';
@@ -220,5 +223,77 @@ describeWithDatabase('ArticleRepository tag filtering (PostgreSQL)', () => {
       favorited: false,
       favoritesCount: 1,
     });
+  });
+
+  it('handles article deletion or slug change between lookup and favorite', async () => {
+    const users = dataSource.getRepository(UserEntity);
+    const author = await users.save(
+      users.create({
+        email: 'race-author@example.test',
+        username: 'race-author',
+        password: 'unused',
+      }),
+    );
+    const viewer = await users.save(
+      users.create({
+        email: 'race-viewer@example.test',
+        username: 'race-viewer',
+        password: 'unused',
+      }),
+    );
+    const repository = new ArticleRepository(
+      dataSource.getRepository(ArticleEntity),
+      dataSource.getRepository(TagEntity),
+    );
+    const useCase = new FavoriteArticleUseCase(repository);
+    const article = await repository.create({
+      slug: 'race-old-slug',
+      title: 'Race',
+      description: 'Description',
+      body: 'Body',
+      authorId: author.id,
+      tagList: [],
+    });
+
+    const addFavorite = repository.addFavorite.bind(repository);
+    const changeSlug = jest
+      .spyOn(repository, 'addFavorite')
+      .mockImplementationOnce(async (id, userId) => {
+        await dataSource.getRepository(ArticleEntity).update(id, {
+          slug: 'race-new-slug',
+        });
+        await addFavorite(id, userId);
+      });
+    await expect(
+      useCase.execute(article.slug, viewer.id, true),
+    ).resolves.toMatchObject({
+      slug: 'race-new-slug',
+      favorited: true,
+      favoritesCount: 1,
+    });
+    changeSlug.mockRestore();
+
+    jest
+      .spyOn(repository, 'addFavorite')
+      .mockImplementationOnce(async (id, userId) => {
+        await repository.delete(id);
+        await addFavorite(id, userId);
+      });
+    await expect(
+      useCase.execute('race-new-slug', viewer.id, true),
+    ).rejects.toBeInstanceOf(ArticleNotFoundException);
+    jest.restoreAllMocks();
+
+    const another = await repository.create({
+      slug: 'race-another',
+      title: 'Another',
+      description: 'Description',
+      body: 'Body',
+      authorId: author.id,
+      tagList: [],
+    });
+    await expect(
+      repository.addFavorite(another.id, randomUUID()),
+    ).rejects.toBeInstanceOf(InternalException);
   });
 });

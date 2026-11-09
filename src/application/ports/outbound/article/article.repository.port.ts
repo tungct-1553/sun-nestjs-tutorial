@@ -28,6 +28,7 @@ export interface UpdateArticleInput {
 
 export interface ArticleRepositoryPort {
   findBySlug(slug: string, viewerId?: string): Promise<Article | null>;
+  findById(id: string, viewerId?: string): Promise<Article | null>;
   findMany(filters: ArticleFilters): Promise<Article[]>;
   count(filters: ArticleFilters): Promise<number>;
   create(input: CreateArticleInput): Promise<Article>;

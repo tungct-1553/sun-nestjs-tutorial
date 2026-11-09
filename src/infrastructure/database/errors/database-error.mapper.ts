@@ -92,3 +92,16 @@ export const mapFollowPersistenceError = (error: unknown): never => {
   }
   throw new InternalException(error);
 };
+
+export const mapFavoritePersistenceError = (error: unknown): never => {
+  if (isQueryFailedError(error)) {
+    const driverError = getDriverError(error);
+    if (
+      driverError.code === '23503' &&
+      driverError.constraint === 'FK_favorites_article'
+    ) {
+      throw new ArticleNotFoundException();
+    }
+  }
+  throw new InternalException(error);
+};

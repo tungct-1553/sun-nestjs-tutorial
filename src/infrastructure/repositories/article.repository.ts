@@ -8,7 +8,10 @@ import {
   UpdateArticleInput,
 } from '@application/ports/outbound/article/article.repository.port';
 import { Article } from '@domain/models/article';
-import { mapArticlePersistenceError } from '@infrastructure/database/errors/database-error.mapper';
+import {
+  mapArticlePersistenceError,
+  mapFavoritePersistenceError,
+} from '@infrastructure/database/errors/database-error.mapper';
 import { ArticleFavoriteEntity } from '@infrastructure/entities/article-favorite.entity';
 import { UserFollowEntity } from '@infrastructure/entities/user-follow.entity';
 import { UserEntity } from '@infrastructure/entities/user.entity';
@@ -27,6 +30,16 @@ export class ArticleRepository implements ArticleRepositoryPort {
 
   async findBySlug(slug: string, viewerId?: string): Promise<Article | null> {
     const entity = await this.articleRepository.findOne({ where: { slug } });
+    if (!entity) return null;
+    const [article] = await this.populateFavorites(
+      [toDomainArticle(entity)],
+      viewerId,
+    );
+    return article;
+  }
+
+  async findById(id: string, viewerId?: string): Promise<Article | null> {
+    const entity = await this.articleRepository.findOne({ where: { id } });
     if (!entity) return null;
     const [article] = await this.populateFavorites(
       [toDomainArticle(entity)],
@@ -124,13 +137,17 @@ export class ArticleRepository implements ArticleRepositoryPort {
   }
 
   async addFavorite(articleId: string, userId: string): Promise<void> {
-    await this.articleRepository.manager
-      .createQueryBuilder()
-      .insert()
-      .into(ArticleFavoriteEntity)
-      .values({ articleId, userId })
-      .orIgnore()
-      .execute();
+    try {
+      await this.articleRepository.manager
+        .createQueryBuilder()
+        .insert()
+        .into(ArticleFavoriteEntity)
+        .values({ articleId, userId })
+        .orIgnore()
+        .execute();
+    } catch (error) {
+      return mapFavoritePersistenceError(error);
+    }
   }
 
   async removeFavorite(articleId: string, userId: string): Promise<void> {

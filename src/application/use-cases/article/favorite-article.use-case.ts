@@ -16,7 +16,7 @@ export class FavoriteArticleUseCase implements FavoriteArticlePort {
     if (!article) throw new ArticleNotFoundException();
     if (favorite) await this.articleRepository.addFavorite(article.id, userId);
     else await this.articleRepository.removeFavorite(article.id, userId);
-    const updated = await this.articleRepository.findBySlug(slug, userId);
+    const updated = await this.articleRepository.findById(article.id, userId);
     if (!updated) throw new ArticleNotFoundException();
     return toArticleResult(updated);
   }
