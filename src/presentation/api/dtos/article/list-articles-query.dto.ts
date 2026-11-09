@@ -11,6 +11,10 @@ export class ListArticlesQueryDto {
   author?: string;
 
   @IsOptional()
+  @IsString()
+  favorited?: string;
+
+  @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(0)

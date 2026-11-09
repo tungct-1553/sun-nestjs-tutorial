@@ -23,3 +23,4 @@ export const DELETE_COMMENT_PORT = Symbol('DELETE_COMMENT_PORT');
 
 export const PROFILE_PORT = Symbol('PROFILE_PORT');
 export const FOLLOW_REPOSITORY = Symbol('FOLLOW_REPOSITORY');
+export const FAVORITE_ARTICLE_PORT = Symbol('FAVORITE_ARTICLE_PORT');

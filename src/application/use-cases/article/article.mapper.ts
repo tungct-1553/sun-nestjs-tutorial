@@ -12,12 +12,12 @@ export const toArticleResult = (
   tagList: article.tagList,
   createdAt: article.createdAt.toISOString(),
   updatedAt: article.updatedAt.toISOString(),
-  favorited: false,
-  favoritesCount: 0,
+  favorited: article.favorited,
+  favoritesCount: article.favoritesCount,
   author: {
     username: article.author.username,
     bio: article.author.bio,
     image: article.author.image,
-    following: false,
+    following: article.author.following ?? false,
   },
 });

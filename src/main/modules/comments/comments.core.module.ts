@@ -12,12 +12,16 @@ import { CommentRepositoryPort } from '@application/ports/outbound/comment/comme
 import { CreateCommentUseCase } from '@application/use-cases/comment/create-comment.use-case';
 import { ListCommentsUseCase } from '@application/use-cases/comment/list-comments.use-case';
 import { DeleteCommentUseCase } from '@application/use-cases/comment/delete-comment.use-case';
+import { UserFollowEntity } from '@infrastructure/entities/user-follow.entity';
 import { CommentEntity } from '@infrastructure/entities/comment.entity';
 import { CommentRepository } from '@infrastructure/repositories/comment.repository';
 import { ArticlesCoreModule } from '@main/modules/articles/articles.core.module';
 
 @Module({
-  imports: [ArticlesCoreModule, TypeOrmModule.forFeature([CommentEntity])],
+  imports: [
+    ArticlesCoreModule,
+    TypeOrmModule.forFeature([CommentEntity, UserFollowEntity]),
+  ],
   providers: [
     { provide: COMMENT_REPOSITORY, useClass: CommentRepository },
     {

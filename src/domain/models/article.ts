@@ -2,6 +2,7 @@ export interface ArticleAuthorProps {
   username: string;
   bio: string | null;
   image: string | null;
+  following?: boolean;
 }
 
 export interface ArticleProps {
@@ -15,6 +16,8 @@ export interface ArticleProps {
   tagList: string[];
   createdAt: Date;
   updatedAt: Date;
+  favorited?: boolean;
+  favoritesCount?: number;
 }
 
 export class Article {
@@ -28,6 +31,8 @@ export class Article {
   readonly tagList: string[];
   readonly createdAt: Date;
   readonly updatedAt: Date;
+  readonly favorited: boolean;
+  readonly favoritesCount: number;
 
   constructor(props: ArticleProps) {
     this.id = props.id;
@@ -40,5 +45,7 @@ export class Article {
     this.tagList = props.tagList;
     this.createdAt = props.createdAt;
     this.updatedAt = props.updatedAt;
+    this.favorited = props.favorited ?? false;
+    this.favoritesCount = props.favoritesCount ?? 0;
   }
 }

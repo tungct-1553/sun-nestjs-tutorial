@@ -30,6 +30,8 @@ describe('DeleteArticleUseCase', () => {
     update: jest.fn(),
     delete: jest.fn(),
     slugExists: jest.fn(),
+    addFavorite: jest.fn(),
+    removeFavorite: jest.fn(),
   };
 
   const useCase = new DeleteArticleUseCase(articleRepository);

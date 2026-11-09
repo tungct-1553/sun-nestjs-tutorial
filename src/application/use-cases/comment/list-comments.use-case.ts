@@ -9,11 +9,11 @@ export class ListCommentsUseCase implements ListCommentsPort {
     private readonly articles: ArticleRepositoryPort,
     private readonly comments: CommentRepositoryPort,
   ) {}
-  async execute(slug: string) {
+  async execute(slug: string, viewerId?: string) {
     const article = await this.articles.findBySlug(slug);
     if (!article) throw new ArticleNotFoundException();
-    return (await this.comments.findByArticleId(article.id)).map(
-      toCommentResult,
+    return (await this.comments.findByArticleId(article.id, viewerId)).map(
+      (comment) => toCommentResult(comment),
     );
   }
 }

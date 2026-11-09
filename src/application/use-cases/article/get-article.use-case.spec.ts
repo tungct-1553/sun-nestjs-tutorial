@@ -12,6 +12,8 @@ describe('GetArticleUseCase', () => {
     update: jest.fn(),
     delete: jest.fn(),
     slugExists: jest.fn(),
+    addFavorite: jest.fn(),
+    removeFavorite: jest.fn(),
   };
   const useCase = new GetArticleUseCase(repository);
 
@@ -26,18 +28,21 @@ describe('GetArticleUseCase', () => {
         description: 'Description',
         body: 'Body',
         authorId: 'user-1',
-        author: { username: 'jake', bio: null, image: null },
+        author: { username: 'jake', bio: null, image: null, following: true },
         tagList: ['one'],
         createdAt: new Date('2026-01-01T00:00:00Z'),
         updatedAt: new Date('2026-01-01T00:00:00Z'),
       }),
     );
-    await expect(useCase.execute('example')).resolves.toMatchObject({
-      slug: 'example',
-      body: 'Body',
-      tagList: ['one'],
-    });
-    expect(repository.findBySlug.mock.calls).toEqual([['example']]);
+    await expect(useCase.execute('example', 'viewer-1')).resolves.toMatchObject(
+      {
+        author: { following: true },
+        slug: 'example',
+        body: 'Body',
+        tagList: ['one'],
+      },
+    );
+    expect(repository.findBySlug.mock.calls).toEqual([['example', 'viewer-1']]);
   });
 
   it('rejects a missing article', async () => {

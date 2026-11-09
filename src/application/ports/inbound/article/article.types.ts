@@ -48,6 +48,8 @@ export interface DeleteArticleCommand {
 export interface ListArticlesQuery {
   tag?: string;
   author?: string;
+  favorited?: string;
+  viewerId?: string;
   limit?: number;
   offset?: number;
 }

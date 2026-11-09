@@ -25,6 +25,8 @@ import {
 import type { CreateCommentPort } from '@application/ports/inbound/comment/create-comment.port';
 import type { ListCommentsPort } from '@application/ports/inbound/comment/list-comment.port';
 import type { DeleteCommentPort } from '@application/ports/inbound/comment/delete-comment.port';
+import { OptionalCurrentUser } from '@presentation/api/decorators/optional-current-user.decorator';
+import { OptionalJwtAuthGuard } from '@presentation/api/guards/optional-jwt-auth.guard';
 import { CurrentUser } from '@presentation/api/decorators/current-user.decorator';
 import type { AuthenticatedRequestUser } from '@presentation/api/decorators/current-user.decorator';
 import { JwtAuthGuard } from '@presentation/api/guards/jwt-auth.guard';
@@ -61,11 +63,17 @@ export class CommentsController {
     );
   }
   @Get()
+  @UseGuards(OptionalJwtAuthGuard)
   @ApiOperation({ summary: 'List comments for an article' })
   @ApiOkResponse({ type: CommentsResponseDto })
   @ApiNotFoundResponse()
-  async list(@Param('slug') slug: string): Promise<CommentsResponseDto> {
-    return new CommentsResponseDto(await this.listComments.execute(slug));
+  async list(
+    @Param('slug') slug: string,
+    @OptionalCurrentUser() user: AuthenticatedRequestUser | null,
+  ): Promise<CommentsResponseDto> {
+    return new CommentsResponseDto(
+      await this.listComments.execute(slug, user?.userId),
+    );
   }
   @Delete(':id')
   @UseGuards(JwtAuthGuard)

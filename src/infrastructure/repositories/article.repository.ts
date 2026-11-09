@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import {
   ArticleFilters,
   ArticleRepositoryPort,
@@ -9,6 +9,9 @@ import {
 } from '@application/ports/outbound/article/article.repository.port';
 import { Article } from '@domain/models/article';
 import { mapArticlePersistenceError } from '@infrastructure/database/errors/database-error.mapper';
+import { ArticleFavoriteEntity } from '@infrastructure/entities/article-favorite.entity';
+import { UserFollowEntity } from '@infrastructure/entities/user-follow.entity';
+import { UserEntity } from '@infrastructure/entities/user.entity';
 import { ArticleEntity } from '@infrastructure/entities/article.entity';
 import { TagEntity } from '@infrastructure/entities/tag.entity';
 import { toDomainArticle } from '@infrastructure/mappers/article.mapper';
@@ -22,9 +25,14 @@ export class ArticleRepository implements ArticleRepositoryPort {
     private readonly tagRepository: Repository<TagEntity>,
   ) {}
 
-  async findBySlug(slug: string): Promise<Article | null> {
+  async findBySlug(slug: string, viewerId?: string): Promise<Article | null> {
     const entity = await this.articleRepository.findOne({ where: { slug } });
-    return entity ? toDomainArticle(entity) : null;
+    if (!entity) return null;
+    const [article] = await this.populateFavorites(
+      [toDomainArticle(entity)],
+      viewerId,
+    );
+    return article;
   }
 
   async findMany(filters: ArticleFilters): Promise<Article[]> {
@@ -35,7 +43,10 @@ export class ArticleRepository implements ArticleRepositoryPort {
       .take(filters.limit)
       .getMany();
 
-    return entities.map(toDomainArticle);
+    return this.populateFavorites(
+      entities.map(toDomainArticle),
+      filters.viewerId,
+    );
   }
 
   async count(filters: ArticleFilters): Promise<number> {
@@ -64,7 +75,11 @@ export class ArticleRepository implements ArticleRepositoryPort {
     }
   }
 
-  async update(id: string, input: UpdateArticleInput): Promise<Article> {
+  async update(
+    id: string,
+    input: UpdateArticleInput,
+    viewerId?: string,
+  ): Promise<Article> {
     try {
       const entity = await this.articleRepository.findOneOrFail({
         where: { id },
@@ -90,7 +105,11 @@ export class ArticleRepository implements ArticleRepositoryPort {
       const reloaded = await this.articleRepository.findOneOrFail({
         where: { id },
       });
-      return toDomainArticle(reloaded);
+      const [article] = await this.populateFavorites(
+        [toDomainArticle(reloaded)],
+        viewerId,
+      );
+      return article;
     } catch (error) {
       return mapArticlePersistenceError(error);
     }
@@ -102,6 +121,69 @@ export class ArticleRepository implements ArticleRepositoryPort {
     } catch (error) {
       return mapArticlePersistenceError(error);
     }
+  }
+
+  async addFavorite(articleId: string, userId: string): Promise<void> {
+    await this.articleRepository.manager
+      .createQueryBuilder()
+      .insert()
+      .into(ArticleFavoriteEntity)
+      .values({ articleId, userId })
+      .orIgnore()
+      .execute();
+  }
+
+  async removeFavorite(articleId: string, userId: string): Promise<void> {
+    await this.articleRepository.manager
+      .getRepository(ArticleFavoriteEntity)
+      .delete({ articleId, userId });
+  }
+
+  private async populateFavorites(
+    articles: Article[],
+    viewerId?: string,
+  ): Promise<Article[]> {
+    if (articles.length === 0) return [];
+    const rows = await this.articleRepository.manager
+      .getRepository(ArticleFavoriteEntity)
+      .createQueryBuilder('favorite')
+      .select('favorite.articleId', 'article_id')
+      .addSelect('COUNT(*)', 'count')
+      .addSelect(
+        'COALESCE(BOOL_OR(favorite.userId = :viewerId), false)',
+        'favorited',
+      )
+      .where('favorite.articleId IN (:...ids)', {
+        ids: articles.map((article) => article.id),
+      })
+      .setParameter('viewerId', viewerId ?? null)
+      .groupBy('favorite.articleId')
+      .getRawMany<{ article_id: string; count: string; favorited: boolean }>();
+    const byArticle = new Map(rows.map((row) => [row.article_id, row]));
+    const followed = viewerId
+      ? await this.articleRepository.manager
+          .getRepository(UserFollowEntity)
+          .find({
+            where: {
+              followerId: viewerId,
+              followedId: In(articles.map((item) => item.authorId)),
+            },
+            select: { followedId: true },
+          })
+      : [];
+    const followedIds = new Set(followed.map((follow) => follow.followedId));
+    return articles.map((article) => {
+      const stats = byArticle.get(article.id);
+      return new Article({
+        ...article,
+        author: {
+          ...article.author,
+          following: followedIds.has(article.authorId),
+        },
+        favoritesCount: Number(stats?.count ?? 0),
+        favorited: stats?.favorited ?? false,
+      });
+    });
   }
 
   async slugExists(slug: string, excludeId?: string): Promise<boolean> {
@@ -140,6 +222,26 @@ export class ArticleRepository implements ArticleRepositoryPort {
       });
     }
 
+    if (filters.favorited) {
+      queryBuilder.andWhere(
+        (builder) => {
+          const subquery = builder
+            .subQuery()
+            .select('1')
+            .from(ArticleFavoriteEntity, 'favorite')
+            .innerJoin(
+              UserEntity,
+              'favorite_user',
+              'favorite_user.id = favorite.userId',
+            )
+            .where('favorite.articleId = article.id')
+            .andWhere('favorite_user.username = :favorited')
+            .getQuery();
+          return `EXISTS ${subquery}`;
+        },
+        { favorited: filters.favorited },
+      );
+    }
     return queryBuilder;
   }
 
