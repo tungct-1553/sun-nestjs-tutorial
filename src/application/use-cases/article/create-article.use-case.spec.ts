@@ -28,6 +28,8 @@ describe('CreateArticleUseCase', () => {
     update: jest.fn(),
     delete: jest.fn(),
     slugExists: jest.fn(),
+    addFavorite: jest.fn(),
+    removeFavorite: jest.fn(),
   };
 
   const useCase = new CreateArticleUseCase(articleRepository);

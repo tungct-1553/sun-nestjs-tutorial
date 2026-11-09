@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   Inject,
   Param,
   Post,
@@ -21,6 +22,8 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import type { FavoriteArticlePort } from '@application/ports/inbound/article/favorite-article.port';
+import { OptionalCurrentUser } from '@presentation/api/decorators/optional-current-user.decorator';
 import type { CreateArticlePort } from '@application/ports/inbound/article/create-article.port';
 import type { DeleteArticlePort } from '@application/ports/inbound/article/delete-article.port';
 import type { GetArticlePort } from '@application/ports/inbound/article/get-article.port';
@@ -28,6 +31,7 @@ import type { ListArticlesPort } from '@application/ports/inbound/article/list-a
 import type { UpdateArticlePort } from '@application/ports/inbound/article/update-article.port';
 import {
   CREATE_ARTICLE_PORT,
+  FAVORITE_ARTICLE_PORT,
   DELETE_ARTICLE_PORT,
   GET_ARTICLE_PORT,
   LIST_ARTICLES_PORT,
@@ -50,6 +54,8 @@ import { OptionalJwtAuthGuard } from '@presentation/api/guards/optional-jwt-auth
 @Controller('articles')
 export class ArticlesController {
   constructor(
+    @Inject(FAVORITE_ARTICLE_PORT)
+    private readonly favoriteArticlePort: FavoriteArticlePort,
     @Inject(LIST_ARTICLES_PORT)
     private readonly listArticlesPort: ListArticlesPort,
     @Inject(GET_ARTICLE_PORT)
@@ -68,8 +74,12 @@ export class ArticlesController {
   @ApiOkResponse({ type: ArticlesListResponseDto })
   async listArticles(
     @Query() query: ListArticlesQueryDto,
+    @OptionalCurrentUser() currentUser: AuthenticatedRequestUser | null,
   ): Promise<ArticlesListResponseDto> {
-    const result = await this.listArticlesPort.execute(query);
+    const result = await this.listArticlesPort.execute({
+      ...query,
+      ...(currentUser ? { viewerId: currentUser.userId } : {}),
+    });
     return new ArticlesListResponseDto(result);
   }
 
@@ -78,9 +88,45 @@ export class ArticlesController {
   @ApiOperation({ summary: 'Get article by slug' })
   @ApiOkResponse({ type: ArticleResponseDto })
   @ApiNotFoundResponse({ type: ErrorResponseDto })
-  async getArticle(@Param('slug') slug: string): Promise<ArticleResponseDto> {
-    const result = await this.getArticlePort.execute(slug);
+  async getArticle(
+    @Param('slug') slug: string,
+    @OptionalCurrentUser() currentUser: AuthenticatedRequestUser | null,
+  ): Promise<ArticleResponseDto> {
+    const result = await this.getArticlePort.execute(slug, currentUser?.userId);
     return new ArticleResponseDto(result);
+  }
+
+  @Post(':slug/favorite')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(200)
+  @ApiSecurity('token')
+  @ApiOperation({ summary: 'Favorite article' })
+  @ApiOkResponse({ type: ArticleResponseDto })
+  @ApiUnauthorizedResponse({ type: ErrorResponseDto })
+  @ApiNotFoundResponse({ type: ErrorResponseDto })
+  async favoriteArticle(
+    @Param('slug') slug: string,
+    @CurrentUser() currentUser: AuthenticatedRequestUser,
+  ): Promise<ArticleResponseDto> {
+    return new ArticleResponseDto(
+      await this.favoriteArticlePort.execute(slug, currentUser.userId, true),
+    );
+  }
+
+  @Delete(':slug/favorite')
+  @UseGuards(JwtAuthGuard)
+  @ApiSecurity('token')
+  @ApiOperation({ summary: 'Unfavorite article' })
+  @ApiOkResponse({ type: ArticleResponseDto })
+  @ApiUnauthorizedResponse({ type: ErrorResponseDto })
+  @ApiNotFoundResponse({ type: ErrorResponseDto })
+  async unfavoriteArticle(
+    @Param('slug') slug: string,
+    @CurrentUser() currentUser: AuthenticatedRequestUser,
+  ): Promise<ArticleResponseDto> {
+    return new ArticleResponseDto(
+      await this.favoriteArticlePort.execute(slug, currentUser.userId, false),
+    );
   }
 
   @Post()

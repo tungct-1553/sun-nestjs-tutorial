@@ -9,6 +9,7 @@ import { I18nService } from 'nestjs-i18n';
 import { App } from 'supertest/types';
 import {
   CREATE_ARTICLE_PORT,
+  FAVORITE_ARTICLE_PORT,
   DELETE_ARTICLE_PORT,
   GET_ARTICLE_PORT,
   LIST_ARTICLES_PORT,
@@ -28,6 +29,7 @@ describe('ArticlesController (e2e)', () => {
   const get = { execute: jest.fn() };
   const list = { execute: jest.fn() };
   const update = { execute: jest.fn() };
+  const favorite = { execute: jest.fn() };
   const remove = { execute: jest.fn() };
   const article = {
     slug: 'example',
@@ -57,6 +59,7 @@ describe('ArticlesController (e2e)', () => {
       controllers: [ArticlesController],
       providers: [
         { provide: CREATE_ARTICLE_PORT, useValue: create },
+        { provide: FAVORITE_ARTICLE_PORT, useValue: favorite },
         { provide: GET_ARTICLE_PORT, useValue: get },
         { provide: LIST_ARTICLES_PORT, useValue: list },
         { provide: UPDATE_ARTICLE_PORT, useValue: update },
@@ -164,6 +167,26 @@ describe('ArticlesController (e2e)', () => {
     });
     await request(app.getHttpServer())
       .delete('/api/articles/example')
+      .expect(403);
+  });
+
+  it('favorites and unfavorites the article as the authenticated user', async () => {
+    favorite.execute.mockResolvedValue({
+      ...article,
+      favorited: true,
+      favoritesCount: 1,
+    });
+    await request(app.getHttpServer())
+      .post('/api/articles/example/favorite')
+      .expect(200);
+    expect(favorite.execute).toHaveBeenCalledWith('example', 'user-1', true);
+    await request(app.getHttpServer())
+      .delete('/api/articles/example/favorite')
+      .expect(200);
+    expect(favorite.execute).toHaveBeenCalledWith('example', 'user-1', false);
+    authenticated = false;
+    await request(app.getHttpServer())
+      .post('/api/articles/example/favorite')
       .expect(403);
   });
 

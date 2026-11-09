@@ -7,8 +7,8 @@ import { ArticleNotFoundException } from '@domain/exceptions/article-not-found.e
 export class GetArticleUseCase implements GetArticlePort {
   constructor(private readonly articleRepository: ArticleRepositoryPort) {}
 
-  async execute(slug: string): Promise<ArticleResult> {
-    const article = await this.articleRepository.findBySlug(slug);
+  async execute(slug: string, viewerId?: string): Promise<ArticleResult> {
+    const article = await this.articleRepository.findBySlug(slug, viewerId);
 
     if (!article) {
       throw new ArticleNotFoundException();

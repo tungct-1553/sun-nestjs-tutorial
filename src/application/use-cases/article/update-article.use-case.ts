@@ -30,13 +30,17 @@ export class UpdateArticleUseCase implements UpdateArticlePort {
       );
     }
 
-    const updatedArticle = await this.articleRepository.update(article.id, {
-      slug,
-      title: command.title,
-      description: command.description,
-      body: command.body,
-      tagList: command.tagList,
-    });
+    const updatedArticle = await this.articleRepository.update(
+      article.id,
+      {
+        slug,
+        title: command.title,
+        description: command.description,
+        body: command.body,
+        tagList: command.tagList,
+      },
+      command.authorId,
+    );
 
     return toArticleResult(updatedArticle);
   }
