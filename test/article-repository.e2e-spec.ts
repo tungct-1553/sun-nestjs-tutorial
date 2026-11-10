@@ -1,6 +1,12 @@
 import { randomUUID } from 'node:crypto';
+import { FavoriteArticleUseCase } from '@application/use-cases/article/favorite-article.use-case';
+import { ArticleNotFoundException } from '@domain/exceptions/article-not-found.exception';
+import { InternalException } from '@domain/exceptions/internal.exception';
 import { DataSource } from 'typeorm';
 import { CreateArticleFavoritesTable1783200000000 } from '@infrastructure/database/migrations/1783200000000-CreateArticleFavoritesTable';
+import { CommentEntity } from '@infrastructure/entities/comment.entity';
+import { CommentRepository } from '@infrastructure/repositories/comment.repository';
+import { UserFollowEntity } from '@infrastructure/entities/user-follow.entity';
 import { ArticleFavoriteEntity } from '@infrastructure/entities/article-favorite.entity';
 import { ArticleEntity } from '@infrastructure/entities/article.entity';
 import { TagEntity } from '@infrastructure/entities/tag.entity';
@@ -25,7 +31,14 @@ describeWithDatabase('ArticleRepository tag filtering (PostgreSQL)', () => {
       type: 'postgres',
       url: databaseUrl,
       schema,
-      entities: [UserEntity, ArticleEntity, TagEntity, ArticleFavoriteEntity],
+      entities: [
+        UserEntity,
+        ArticleEntity,
+        TagEntity,
+        ArticleFavoriteEntity,
+        UserFollowEntity,
+        CommentEntity,
+      ],
       synchronize: true,
     }).initialize();
     const runner = dataSource.createQueryRunner();
@@ -125,6 +138,53 @@ describeWithDatabase('ArticleRepository tag filtering (PostgreSQL)', () => {
       authorId: author.id,
       tagList: ['favorite-tag'],
     });
+    const followRepository = dataSource.getRepository(UserFollowEntity);
+    await followRepository.save({
+      followerId: alice.id,
+      followedId: author.id,
+    });
+    expect(
+      (await repository.findBySlug(first.slug, alice.id))?.author.following,
+    ).toBe(true);
+    expect(
+      (await repository.findBySlug(first.slug, bob.id))?.author.following,
+    ).toBe(false);
+    expect((await repository.findBySlug(first.slug))?.author.following).toBe(
+      false,
+    );
+    expect(
+      (
+        await repository.findMany({
+          tag: 'favorite-tag',
+          limit: 10,
+          offset: 0,
+          viewerId: alice.id,
+        })
+      ).every((item) => item.author.following),
+    ).toBe(true);
+    const comments = new CommentRepository(
+      dataSource.getRepository(CommentEntity),
+    );
+    await comments.create(first.id, author.id, 'test following');
+    expect(
+      (await comments.findByArticleId(first.id, alice.id))[0]?.author.following,
+    ).toBe(true);
+    expect(
+      (await comments.findByArticleId(first.id, bob.id))[0]?.author.following,
+    ).toBe(false);
+    expect(
+      (await comments.findByArticleId(first.id))[0]?.author.following,
+    ).toBe(false);
+    await followRepository.delete({
+      followerId: alice.id,
+      followedId: author.id,
+    });
+    expect(
+      (await comments.findByArticleId(first.id, alice.id))[0]?.author.following,
+    ).toBe(false);
+    expect(
+      (await repository.findBySlug(first.slug, alice.id))?.author.following,
+    ).toBe(false);
     await Promise.all([
       repository.addFavorite(first.id, alice.id),
       repository.addFavorite(first.id, alice.id),
@@ -163,5 +223,77 @@ describeWithDatabase('ArticleRepository tag filtering (PostgreSQL)', () => {
       favorited: false,
       favoritesCount: 1,
     });
+  });
+
+  it('handles article deletion or slug change between lookup and favorite', async () => {
+    const users = dataSource.getRepository(UserEntity);
+    const author = await users.save(
+      users.create({
+        email: 'race-author@example.test',
+        username: 'race-author',
+        password: 'unused',
+      }),
+    );
+    const viewer = await users.save(
+      users.create({
+        email: 'race-viewer@example.test',
+        username: 'race-viewer',
+        password: 'unused',
+      }),
+    );
+    const repository = new ArticleRepository(
+      dataSource.getRepository(ArticleEntity),
+      dataSource.getRepository(TagEntity),
+    );
+    const useCase = new FavoriteArticleUseCase(repository);
+    const article = await repository.create({
+      slug: 'race-old-slug',
+      title: 'Race',
+      description: 'Description',
+      body: 'Body',
+      authorId: author.id,
+      tagList: [],
+    });
+
+    const addFavorite = repository.addFavorite.bind(repository);
+    const changeSlug = jest
+      .spyOn(repository, 'addFavorite')
+      .mockImplementationOnce(async (id, userId) => {
+        await dataSource.getRepository(ArticleEntity).update(id, {
+          slug: 'race-new-slug',
+        });
+        await addFavorite(id, userId);
+      });
+    await expect(
+      useCase.execute(article.slug, viewer.id, true),
+    ).resolves.toMatchObject({
+      slug: 'race-new-slug',
+      favorited: true,
+      favoritesCount: 1,
+    });
+    changeSlug.mockRestore();
+
+    jest
+      .spyOn(repository, 'addFavorite')
+      .mockImplementationOnce(async (id, userId) => {
+        await repository.delete(id);
+        await addFavorite(id, userId);
+      });
+    await expect(
+      useCase.execute('race-new-slug', viewer.id, true),
+    ).rejects.toBeInstanceOf(ArticleNotFoundException);
+    jest.restoreAllMocks();
+
+    const another = await repository.create({
+      slug: 'race-another',
+      title: 'Another',
+      description: 'Description',
+      body: 'Body',
+      authorId: author.id,
+      tagList: [],
+    });
+    await expect(
+      repository.addFavorite(another.id, randomUUID()),
+    ).rejects.toBeInstanceOf(InternalException);
   });
 });

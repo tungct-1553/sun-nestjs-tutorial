@@ -11,7 +11,7 @@ export function toCommentResult(comment: Comment): CommentResult {
       username: comment.author.username,
       bio: comment.author.bio,
       image: comment.author.image,
-      following: false,
+      following: comment.author.following ?? false,
     },
   };
 }

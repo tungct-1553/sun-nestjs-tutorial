@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { CommentRepositoryPort } from '@application/ports/outbound/comment/comment.repository.port';
 import { Comment } from '@domain/models/comment';
+import { UserFollowEntity } from '@infrastructure/entities/user-follow.entity';
 import { CommentEntity } from '@infrastructure/entities/comment.entity';
 
 function toDomainComment(entity: CommentEntity): Comment {
@@ -39,12 +40,35 @@ export class CommentRepository implements CommentRepositoryPort {
       await this.repository.findOneOrFail({ where: { id: saved.id } }),
     );
   }
-  async findByArticleId(articleId: string): Promise<Comment[]> {
+  async findByArticleId(
+    articleId: string,
+    viewerId?: string,
+  ): Promise<Comment[]> {
     const entities = await this.repository.find({
       where: { articleId },
       order: { createdAt: 'DESC', id: 'DESC' },
     });
-    return entities.map(toDomainComment);
+    const followed =
+      viewerId && entities.length
+        ? await this.repository.manager.getRepository(UserFollowEntity).find({
+            where: {
+              followerId: viewerId,
+              followedId: In(entities.map((item) => item.authorId)),
+            },
+            select: { followedId: true },
+          })
+        : [];
+    const followedIds = new Set(followed.map((follow) => follow.followedId));
+    return entities.map((entity) => {
+      const comment = toDomainComment(entity);
+      return {
+        ...comment,
+        author: {
+          ...comment.author,
+          following: followedIds.has(comment.authorId),
+        },
+      };
+    });
   }
   async findByIdAndArticleId(
     id: string,

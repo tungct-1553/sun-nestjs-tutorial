@@ -15,6 +15,7 @@ import {
   LIST_ARTICLES_PORT,
   UPDATE_ARTICLE_PORT,
 } from '@application/ports/tokens';
+import { UserFollowEntity } from '@infrastructure/entities/user-follow.entity';
 import { ArticleFavoriteEntity } from '@infrastructure/entities/article-favorite.entity';
 import { ArticleEntity } from '@infrastructure/entities/article.entity';
 import { TagEntity } from '@infrastructure/entities/tag.entity';
@@ -22,7 +23,12 @@ import { ArticleRepository } from '@infrastructure/repositories/article.reposito
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([ArticleEntity, TagEntity, ArticleFavoriteEntity]),
+    TypeOrmModule.forFeature([
+      ArticleEntity,
+      TagEntity,
+      ArticleFavoriteEntity,
+      UserFollowEntity,
+    ]),
   ],
   providers: [
     {

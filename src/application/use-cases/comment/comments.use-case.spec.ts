@@ -12,6 +12,7 @@ import { Comment } from '@domain/models/comment';
 describe('comment use cases', () => {
   const articles: jest.Mocked<ArticleRepositoryPort> = {
     findBySlug: jest.fn(),
+    findById: jest.fn(),
     findMany: jest.fn(),
     count: jest.fn(),
     create: jest.fn(),
@@ -96,6 +97,20 @@ describe('comment use cases', () => {
     expect(comments.findByArticleId.mock.calls).toEqual([['article-1']]);
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe('comment-1');
+  });
+  it('returns viewer-specific follow state without exposing extra fields', async () => {
+    comments.findByArticleId.mockResolvedValue([
+      { ...comment, author: { ...comment.author, following: true } },
+    ]);
+    const result = await new ListCommentsUseCase(articles, comments).execute(
+      'slug',
+      'viewer-1',
+    );
+    expect(comments.findByArticleId.mock.calls).toContainEqual([
+      'article-1',
+      'viewer-1',
+    ]);
+    expect(result[0].author.following).toBe(true);
   });
   it('rejects create, list and delete when article does not exist', async () => {
     articles.findBySlug.mockResolvedValue(null);

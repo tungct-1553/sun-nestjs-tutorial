@@ -6,7 +6,8 @@
     "username_taken": "Username is already taken"
   },
   "user": {
-    "not_found": "User not found"
+    "not_found": "User not found",
+    "self_follow": "You cannot follow yourself"
   },
   "article": {
     "not_found": "Article not found",

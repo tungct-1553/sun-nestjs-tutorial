@@ -12,6 +12,7 @@ import {
   LIST_COMMENTS_PORT,
 } from '@application/ports/tokens';
 import { CommentsController } from '@presentation/api/controllers/comments.controller';
+import { OptionalJwtAuthGuard } from '@presentation/api/guards/optional-jwt-auth.guard';
 import { JwtAuthGuard } from '@presentation/api/guards/jwt-auth.guard';
 
 describe('CommentsController (e2e)', () => {
@@ -49,6 +50,15 @@ describe('CommentsController (e2e)', () => {
           return true;
         },
       })
+      .overrideGuard(OptionalJwtAuthGuard)
+      .useValue({
+        canActivate: (ctx: ExecutionContext) => {
+          if (userId)
+            ctx.switchToHttp().getRequest<{ user: { userId: string } }>().user =
+              { userId };
+          return true;
+        },
+      })
       .compile();
     app = module.createNestApplication();
     app.setGlobalPrefix('api');
@@ -81,7 +91,14 @@ describe('CommentsController (e2e)', () => {
       .get('/api/articles/slug/comments')
       .expect(200);
     expect(response.body).toEqual({ comments: [comment] });
-    expect(list.execute).toHaveBeenCalledWith('slug');
+    expect(list.execute).toHaveBeenCalledWith('slug', undefined);
+  });
+  it('passes the authenticated viewer to list comments', async () => {
+    list.execute.mockResolvedValue([comment]);
+    await request(app.getHttpServer())
+      .get('/api/articles/slug/comments')
+      .expect(200);
+    expect(list.execute).toHaveBeenCalledWith('slug', 'user-1');
   });
   it.each([
     {},

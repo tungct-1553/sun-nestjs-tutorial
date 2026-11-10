@@ -18,6 +18,6 @@ export const toArticleResult = (
     username: article.author.username,
     bio: article.author.bio,
     image: article.author.image,
-    following: false,
+    following: article.author.following ?? false,
   },
 });

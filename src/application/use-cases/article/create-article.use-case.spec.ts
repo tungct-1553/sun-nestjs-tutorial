@@ -22,6 +22,7 @@ describe('CreateArticleUseCase', () => {
 
   const articleRepository: jest.Mocked<ArticleRepositoryPort> = {
     findBySlug: jest.fn(),
+    findById: jest.fn(),
     findMany: jest.fn(),
     count: jest.fn(),
     create: jest.fn(),

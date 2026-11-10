@@ -6,7 +6,8 @@
     "username_taken": "Tên người dùng đã được sử dụng"
   },
   "user": {
-    "not_found": "Không tìm thấy người dùng"
+    "not_found": "Không tìm thấy người dùng",
+    "self_follow": "Bạn không thể theo dõi chính mình"
   },
   "article": {
     "not_found": "Không tìm thấy bài viết",
