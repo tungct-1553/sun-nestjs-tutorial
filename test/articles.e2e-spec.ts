@@ -108,6 +108,28 @@ describe('ArticlesController (e2e)', () => {
     });
   });
 
+  it('routes feed before slug, applies pagination and requires authentication', async () => {
+    list.execute.mockResolvedValue({ articles: [article], articlesCount: 1 });
+    await request(app.getHttpServer())
+      .get('/api/articles/feed?limit=5&offset=2')
+      .expect(200);
+    expect(list.execute).toHaveBeenCalledWith({
+      limit: 5,
+      offset: 2,
+      followedById: 'user-1',
+      viewerId: 'user-1',
+    });
+    expect(get.execute).not.toHaveBeenCalled();
+    await request(app.getHttpServer())
+      .get('/api/articles/feed?limit=-1')
+      .expect(400);
+    await request(app.getHttpServer())
+      .get('/api/articles/feed?followedById=other')
+      .expect(400);
+    authenticated = false;
+    await request(app.getHttpServer()).get('/api/articles/feed').expect(403);
+  });
+
   it('gets an article and returns 404 when missing', async () => {
     get.execute
       .mockResolvedValueOnce(article)

@@ -49,9 +49,11 @@ export class ArticleRepository implements ArticleRepositoryPort {
   }
 
   async findMany(filters: ArticleFilters): Promise<Article[]> {
+    if (filters.limit === 0) return [];
     const queryBuilder = this.buildFilteredQuery(filters);
     const entities = await queryBuilder
       .orderBy('article.created_at', 'DESC')
+      .addOrderBy('article.id', 'DESC')
       .skip(filters.offset)
       .take(filters.limit)
       .getMany();
@@ -221,6 +223,15 @@ export class ArticleRepository implements ArticleRepositoryPort {
       .createQueryBuilder('article')
       .leftJoinAndSelect('article.author', 'author')
       .leftJoinAndSelect('article.tags', 'tags');
+
+    if (filters.followedById) {
+      queryBuilder.innerJoin(
+        UserFollowEntity,
+        'feedFollow',
+        'feedFollow.followedId = article.authorId AND feedFollow.followerId = :followedById',
+        { followedById: filters.followedById },
+      );
+    }
 
     if (filters.tag) {
       queryBuilder.innerJoin(
