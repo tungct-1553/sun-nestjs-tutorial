@@ -15,6 +15,7 @@ import { UserNotFoundException } from '@domain/exceptions/user-not-found.excepti
 import { UserController } from '@presentation/api/controllers/user.controller';
 import { AllExceptionsFilter } from '@presentation/api/filters/all-exceptions.filter';
 import { JwtAuthGuard } from '@presentation/api/guards/jwt-auth.guard';
+import { testI18nService } from './i18n-test-helper';
 
 describe('UserController (e2e)', () => {
   let app: INestApplication<App>;
@@ -34,7 +35,9 @@ describe('UserController (e2e)', () => {
         return false;
       }
 
-      const request = context.switchToHttp().getRequest<{ user?: { userId: string } }>();
+      const request = context
+        .switchToHttp()
+        .getRequest<{ user?: { userId: string } }>();
       request.user = { userId: authenticatedUserId };
       return true;
     },
@@ -65,7 +68,7 @@ describe('UserController (e2e)', () => {
         transformOptions: { enableImplicitConversion: true },
       }),
     );
-    app.useGlobalFilters(new AllExceptionsFilter());
+    app.useGlobalFilters(new AllExceptionsFilter(testI18nService));
     await app.init();
   });
 
@@ -87,7 +90,12 @@ describe('UserController (e2e)', () => {
       .expect(200);
 
     const body = response.body as {
-      user: { email: string; username: string; bio: string | null; image: string | null };
+      user: {
+        email: string;
+        username: string;
+        bio: string | null;
+        image: string | null;
+      };
     };
     expect(body.user).toEqual({
       email: 'jake@jake.jake',
@@ -95,7 +103,7 @@ describe('UserController (e2e)', () => {
       bio: null,
       image: null,
     });
-    expect(getCurrentUserPort.execute.mock.calls[0]?.[0]).toBe('user-1');
+    expect(getCurrentUserPort.execute).toHaveBeenCalledWith('user-1');
   });
 
   it('GET /api/user maps user not found to 404', async () => {
@@ -146,7 +154,7 @@ describe('UserController (e2e)', () => {
       bio: 'bio',
       image: 'image',
     });
-    expect(updateUserPort.execute.mock.calls[0]?.[0]).toEqual({
+    expect(updateUserPort.execute).toHaveBeenCalledWith({
       userId: 'user-1',
       email: 'new@new.new',
       username: 'newjake',
