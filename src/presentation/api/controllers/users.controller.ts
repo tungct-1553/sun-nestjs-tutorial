@@ -1,4 +1,5 @@
-import { Body, Controller, Inject, Post } from '@nestjs/common';
+import { Body, Controller, Inject, Post, UseFilters } from '@nestjs/common';
+import { AuthValidationFilter } from '@presentation/api/filters/auth-validation.filter';
 import {
   ApiBody,
   ApiCreatedResponse,
@@ -17,6 +18,7 @@ import { ErrorResponseDto } from '@presentation/api/dtos/common/error-response.d
 
 @ApiTags('Users')
 @Controller('users')
+@UseFilters(AuthValidationFilter)
 export class UsersController {
   constructor(
     @Inject(REGISTER_USER_PORT)
