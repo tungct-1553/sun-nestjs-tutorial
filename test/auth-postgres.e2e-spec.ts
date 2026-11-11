@@ -269,4 +269,37 @@ describeWithDatabase('Auth and User API (PostgreSQL)', () => {
     expect(errors['user.username']).toEqual(expect.any(Array));
     expect(errors['user.password']).toEqual(expect.any(Array));
   });
+
+  it('rejects user arrays and non-string fields instead of coercing them', async () => {
+    const server = app.getHttpServer();
+    const auth = `Token ${token}`;
+    for (const call of [
+      () => request(server).post('/api/users').send({ user: [] }),
+      () => request(server).post('/api/users/login').send({ user: [] }),
+      () =>
+        request(server)
+          .put('/api/user')
+          .set('Authorization', auth)
+          .send({ user: [] }),
+      () =>
+        request(server)
+          .post('/api/users')
+          .send({
+            user: { email: 'valid@example.test', username: 123, password: 123 },
+          }),
+      () =>
+        request(server)
+          .post('/api/users/login')
+          .send({ user: { email, password: 123 } }),
+      () =>
+        request(server)
+          .put('/api/user')
+          .set('Authorization', auth)
+          .send({
+            user: { username: 123, password: 456, bio: 789, image: 123 },
+          }),
+    ]) {
+      await call().expect(422);
+    }
+  });
 });
