@@ -2,14 +2,12 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import {
-  LOGIN_USER_PORT,
-  REGISTER_USER_PORT,
-} from '@application/ports/tokens';
+import { LOGIN_USER_PORT, REGISTER_USER_PORT } from '@application/ports/tokens';
 import { DuplicateEmailException } from '@domain/exceptions/duplicate-email.exception';
 import { InvalidCredentialsException } from '@domain/exceptions/invalid-credentials.exception';
 import { UsersController } from '@presentation/api/controllers/users.controller';
 import { AllExceptionsFilter } from '@presentation/api/filters/all-exceptions.filter';
+import { testI18nService } from './i18n-test-helper';
 
 describe('UsersController (e2e)', () => {
   let app: INestApplication<App>;
@@ -43,7 +41,7 @@ describe('UsersController (e2e)', () => {
         transformOptions: { enableImplicitConversion: true },
       }),
     );
-    app.useGlobalFilters(new AllExceptionsFilter());
+    app.useGlobalFilters(new AllExceptionsFilter(testI18nService));
     await app.init();
   });
 
