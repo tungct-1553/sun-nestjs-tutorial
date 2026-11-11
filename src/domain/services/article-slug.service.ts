@@ -19,7 +19,7 @@ export const resolveUniqueSlug = async (
   }
 
   const exists = async (slug: string): Promise<boolean> => {
-    const taken = await slugExists(slug);
+    const taken = slug === 'feed' || (await slugExists(slug));
     return taken;
   };
 

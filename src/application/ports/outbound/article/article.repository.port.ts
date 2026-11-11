@@ -1,6 +1,7 @@
 import { Article } from '@domain/models/article';
 
 export interface ArticleFilters {
+  followedById?: string;
   tag?: string;
   authorUsername?: string;
   favorited?: string;

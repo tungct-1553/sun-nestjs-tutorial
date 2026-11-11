@@ -45,6 +45,7 @@ import {
   ArticlesListResponseDto,
 } from '@presentation/api/dtos/article/article-response.dto';
 import { ListArticlesQueryDto } from '@presentation/api/dtos/article/list-articles-query.dto';
+import { FeedArticlesQueryDto } from '@presentation/api/dtos/article/feed-articles-query.dto';
 import { UpdateArticleDto } from '@presentation/api/dtos/article/update-article.dto';
 import { ErrorResponseDto } from '@presentation/api/dtos/common/error-response.dto';
 import { JwtAuthGuard } from '@presentation/api/guards/jwt-auth.guard';
@@ -79,6 +80,24 @@ export class ArticlesController {
     const result = await this.listArticlesPort.execute({
       ...query,
       ...(currentUser ? { viewerId: currentUser.userId } : {}),
+    });
+    return new ArticlesListResponseDto(result);
+  }
+
+  @Get('feed')
+  @UseGuards(JwtAuthGuard)
+  @ApiSecurity('token')
+  @ApiOperation({ summary: 'Get articles from followed users' })
+  @ApiOkResponse({ type: ArticlesListResponseDto })
+  @ApiUnauthorizedResponse({ type: ErrorResponseDto })
+  async getFeed(
+    @Query() query: FeedArticlesQueryDto,
+    @CurrentUser() currentUser: AuthenticatedRequestUser,
+  ): Promise<ArticlesListResponseDto> {
+    const result = await this.listArticlesPort.execute({
+      ...query,
+      followedById: currentUser.userId,
+      viewerId: currentUser.userId,
     });
     return new ArticlesListResponseDto(result);
   }

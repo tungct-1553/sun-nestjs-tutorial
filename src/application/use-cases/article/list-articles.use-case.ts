@@ -14,6 +14,9 @@ export class ListArticlesUseCase implements ListArticlesPort {
 
   async execute(query: ListArticlesQuery): Promise<ArticlesListResult> {
     const filters = {
+      ...(query.followedById !== undefined
+        ? { followedById: query.followedById }
+        : {}),
       tag: query.tag,
       authorUsername: query.author,
       ...(query.favorited !== undefined ? { favorited: query.favorited } : {}),
@@ -29,7 +32,9 @@ export class ListArticlesUseCase implements ListArticlesPort {
 
     return {
       articles: articles.map((article) =>
-        toArticleResult(article, { includeBody: false }),
+        toArticleResult(article, {
+          includeBody: query.followedById !== undefined,
+        }),
       ),
       articlesCount,
     };

@@ -55,4 +55,26 @@ describe('ListArticlesUseCase', () => {
     expect(result.articles[0]?.body).toBeUndefined();
     expect(result.articles[0]?.slug).toBe('how-to-train-your-dragon');
   });
+  it('scopes feed pagination and counts to the authenticated viewer', async () => {
+    articleRepository.findMany.mockResolvedValue([article]);
+    articleRepository.count.mockResolvedValue(3);
+    const result = await useCase.execute({
+      followedById: 'viewer',
+      viewerId: 'viewer',
+      limit: 1,
+      offset: 2,
+    });
+    const expected = {
+      followedById: 'viewer',
+      viewerId: 'viewer',
+      tag: undefined,
+      authorUsername: undefined,
+      limit: 1,
+      offset: 2,
+    };
+    expect(articleRepository.findMany.mock.calls[0]?.[0]).toEqual(expected);
+    expect(articleRepository.count.mock.calls[0]?.[0]).toEqual(expected);
+    expect(result.articlesCount).toBe(3);
+    expect(result.articles[0]?.body).toBe('You have to believe');
+  });
 });

@@ -3,6 +3,7 @@ import { FavoriteArticleUseCase } from '@application/use-cases/article/favorite-
 import { ArticleNotFoundException } from '@domain/exceptions/article-not-found.exception';
 import { InternalException } from '@domain/exceptions/internal.exception';
 import { DataSource } from 'typeorm';
+import { ReserveArticleFeedSlug1783400000000 } from '@infrastructure/database/migrations/1783400000000-ReserveArticleFeedSlug';
 import { CreateArticleFavoritesTable1783200000000 } from '@infrastructure/database/migrations/1783200000000-CreateArticleFavoritesTable';
 import { CommentEntity } from '@infrastructure/entities/comment.entity';
 import { CommentRepository } from '@infrastructure/repositories/comment.repository';
@@ -223,6 +224,127 @@ describeWithDatabase('ArticleRepository tag filtering (PostgreSQL)', () => {
       favorited: false,
       favoritesCount: 1,
     });
+  });
+
+  it('returns only followed authors in the feed with correct counts and viewer metadata', async () => {
+    const users = dataSource.getRepository(UserEntity);
+    const makeUser = (name: string) =>
+      users.save(
+        users.create({
+          email: `${name}@feed.test`,
+          username: name,
+          password: 'unused',
+        }),
+      );
+    const viewer = await makeUser('feed-viewer');
+    const followed = await makeUser('feed-followed');
+    const other = await makeUser('feed-other');
+    const repository = new ArticleRepository(
+      dataSource.getRepository(ArticleEntity),
+      dataSource.getRepository(TagEntity),
+    );
+    const create = (slug: string, authorId: string, tagList: string[]) =>
+      repository.create({
+        slug,
+        title: slug,
+        description: 'Description',
+        body: 'Body',
+        authorId,
+        tagList,
+      });
+    const older = await create('feed-older', followed.id, [
+      'feed-one',
+      'feed-two',
+    ]);
+    const newer = await create('feed-newer', followed.id, ['feed-three']);
+    await create('feed-excluded', other.id, []);
+    await create('feed-own', viewer.id, []);
+    const entities = dataSource.getRepository(ArticleEntity);
+    await entities.update(older.id, {
+      createdAt: new Date('2020-01-01T00:00:00Z'),
+    });
+    await entities.update(newer.id, {
+      createdAt: new Date('2021-01-01T00:00:00Z'),
+    });
+    await dataSource
+      .getRepository(UserFollowEntity)
+      .save({ followerId: viewer.id, followedId: followed.id });
+    await repository.addFavorite(older.id, viewer.id);
+    const filters = {
+      followedById: viewer.id,
+      viewerId: viewer.id,
+      limit: 1,
+      offset: 0,
+    };
+    expect(await repository.count(filters)).toBe(2);
+    expect(await repository.findMany(filters)).toMatchObject([
+      { slug: 'feed-newer', author: { following: true } },
+    ]);
+    const page2 = await repository.findMany({ ...filters, offset: 1 });
+    expect(page2).toMatchObject([
+      {
+        slug: 'feed-older',
+        favorited: true,
+        favoritesCount: 1,
+        author: { following: true },
+      },
+    ]);
+    expect(page2[0].tagList.sort()).toEqual(['feed-one', 'feed-two']);
+    expect(await repository.findMany({ ...filters, limit: 0 })).toEqual([]);
+    expect(await repository.count({ ...filters, followedById: other.id })).toBe(
+      0,
+    );
+    await dataSource
+      .getRepository(UserFollowEntity)
+      .delete({ followerId: viewer.id, followedId: followed.id });
+    expect(await repository.count(filters)).toBe(0);
+  });
+
+  it('moves a legacy feed slug without colliding with an existing slug', async () => {
+    const users = dataSource.getRepository(UserEntity);
+    const author = await users.save(
+      users.create({
+        email: 'legacy-feed@example.test',
+        username: 'legacy-feed',
+        password: 'unused',
+      }),
+    );
+    const repository = new ArticleRepository(
+      dataSource.getRepository(ArticleEntity),
+      dataSource.getRepository(TagEntity),
+    );
+    const create = (slug: string) =>
+      repository.create({
+        slug,
+        title: slug,
+        description: 'Description',
+        body: 'Body',
+        authorId: author.id,
+        tagList: [],
+      });
+    const legacy = await create('feed');
+    const collision = await create('feed-2');
+    const runner = dataSource.createQueryRunner();
+    await runner.connect();
+    await runner.query(`SET search_path TO "${schema}", public`);
+    const migration = new ReserveArticleFeedSlug1783400000000();
+    try {
+      await runner.startTransaction();
+      await migration.up(runner);
+      await runner.commitTransaction();
+      expect((await repository.findById(legacy.id))?.slug).toBe('feed-3');
+      expect((await repository.findById(collision.id))?.slug).toBe('feed-2');
+      await expect(
+        dataSource
+          .getRepository(ArticleEntity)
+          .update(legacy.id, { slug: 'feed' }),
+      ).rejects.toThrow();
+      await migration.down(runner);
+      expect((await repository.findById(legacy.id))?.slug).toBe('feed-3');
+    } finally {
+      if (runner.isTransactionActive) await runner.rollbackTransaction();
+      await runner.release();
+    }
   });
 
   it('handles article deletion or slug change between lookup and favorite', async () => {

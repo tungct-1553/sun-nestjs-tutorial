@@ -46,6 +46,7 @@ export interface DeleteArticleCommand {
 }
 
 export interface ListArticlesQuery {
+  followedById?: string;
   tag?: string;
   author?: string;
   favorited?: string;
