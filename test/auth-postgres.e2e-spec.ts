@@ -151,9 +151,11 @@ describeWithDatabase('Auth and User API (PostgreSQL)', () => {
     const invalid = await request(server)
       .post('/api/users')
       .send({ user: { email: 'bad', username: 'x', password } })
-      .expect(400);
+      .expect(422);
     expect(
-      (invalid.body as { errors: Record<string, string[]> }).errors.error,
+      (invalid.body as { errors: Record<string, string[]> }).errors[
+        'user.email'
+      ],
     ).toEqual(expect.any(Array));
     const duplicate = await request(server)
       .post('/api/users')
@@ -194,9 +196,77 @@ describeWithDatabase('Auth and User API (PostgreSQL)', () => {
       .put('/api/user')
       .set('Authorization', auth)
       .send({ user: { email: null } })
-      .expect(400);
+      .expect(422);
     expect(
-      (invalid.body as { errors: Record<string, string[]> }).errors.error,
+      (invalid.body as { errors: Record<string, string[]> }).errors[
+        'user.email'
+      ],
     ).toEqual(expect.any(Array));
+  });
+
+  it('returns translated field errors without including submitted values', async () => {
+    const secret = 'secret-not-to-be-returned';
+    const server = app.getHttpServer();
+    const english = await request(server)
+      .post('/api/users')
+      .send({
+        user: { email: 'invalid-email', username: '', password: secret },
+      })
+      .expect(422);
+    const englishErrors = (english.body as { errors: Record<string, string[]> })
+      .errors;
+    expect(englishErrors['user.email']).toContain(
+      'Email must be a valid email address',
+    );
+    expect(englishErrors['user.username']).toContain(
+      'Username must not be empty',
+    );
+    expect(JSON.stringify(english.body)).not.toContain(secret);
+    expect(JSON.stringify(english.body)).not.toContain('invalid-email');
+
+    const vietnamese = await request(server)
+      .post('/api/users/login?lang=vi')
+      .send({ user: { email: 'invalid-email', password: '' } })
+      .expect(422);
+    const vietnameseErrors = (
+      vietnamese.body as { errors: Record<string, string[]> }
+    ).errors;
+    expect(vietnameseErrors['user.email']).toContain(
+      'Email phải là địa chỉ email hợp lệ',
+    );
+    expect(vietnameseErrors['user.password']).toContain(
+      'Mật khẩu không được để trống',
+    );
+  });
+
+  it('keeps malformed JSON and non-auth validation errors at 400', async () => {
+    const server = app.getHttpServer();
+    await request(server)
+      .post('/api/users')
+      .set('Content-Type', 'application/json')
+      .send('{bad json')
+      .expect(400);
+    await request(server).get('/api/articles?limit=-1').expect(400);
+  });
+
+  it('returns field errors for missing user body and invalid update', async () => {
+    const server = app.getHttpServer();
+    const missing = await request(server)
+      .post('/api/users/login')
+      .send({})
+      .expect(422);
+    expect(
+      (missing.body as { errors: Record<string, string[]> }).errors.user,
+    ).toEqual(expect.any(Array));
+    const updated = await request(server)
+      .put('/api/user')
+      .set('Authorization', `Token ${token}`)
+      .send({ user: { email: null, username: '', password: '' } })
+      .expect(422);
+    const errors = (updated.body as { errors: Record<string, string[]> })
+      .errors;
+    expect(errors['user.email']).toEqual(expect.any(Array));
+    expect(errors['user.username']).toEqual(expect.any(Array));
+    expect(errors['user.password']).toEqual(expect.any(Array));
   });
 });

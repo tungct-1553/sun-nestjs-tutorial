@@ -1,3 +1,4 @@
+import { I18nService } from 'nestjs-i18n';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
@@ -26,6 +27,7 @@ describe('UsersController (e2e)', () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       controllers: [UsersController],
       providers: [
+        { provide: I18nService, useValue: testI18nService },
         { provide: REGISTER_USER_PORT, useValue: registerUserPort },
         { provide: LOGIN_USER_PORT, useValue: loginUserPort },
       ],
