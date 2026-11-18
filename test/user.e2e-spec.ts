@@ -1,3 +1,4 @@
+import { I18nService } from 'nestjs-i18n';
 import {
   ExecutionContext,
   INestApplication,
@@ -50,6 +51,7 @@ describe('UserController (e2e)', () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       controllers: [UserController],
       providers: [
+        { provide: I18nService, useValue: testI18nService },
         { provide: GET_CURRENT_USER_PORT, useValue: getCurrentUserPort },
         { provide: UPDATE_USER_PORT, useValue: updateUserPort },
       ],

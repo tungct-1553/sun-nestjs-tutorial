@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Inject, Put, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Inject,
+  Put,
+  UseFilters,
+  UseGuards,
+} from '@nestjs/common';
+import { AuthValidationFilter } from '@presentation/api/filters/auth-validation.filter';
 import {
   ApiBody,
   ApiNotFoundResponse,
@@ -25,6 +34,7 @@ import { JwtAuthGuard } from '@presentation/api/guards/jwt-auth.guard';
 @ApiTags('User')
 @ApiSecurity('token')
 @Controller('user')
+@UseFilters(AuthValidationFilter)
 @UseGuards(JwtAuthGuard)
 export class UserController {
   constructor(
